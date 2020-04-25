@@ -1,0 +1,32 @@
+
+name: Build aria2c i686 for Windows
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build aria2 Docker image
+        run: docker build -t aria2_i686_mingw -f Dockerfile.i686.mingw .
+      - name: Create a container
+        id: ccont
+        run: echo ::set-output name=id::$(docker create aria2_i686_mingw /bin/bash)
+      - name: Copy built aria2c exe
+        run: |
+          mkdir aria2
+          docker cp ${{steps.ccont.outputs.id}}:/aria2c.exe aria2
+      - name: rm the container and image
+        run: |
+          docker rm ${{steps.ccont.outputs.id}}
+          docker image rm aria2_i686_mingw
+      - name: Upload artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: aria2-win
+          path: aria2
+
