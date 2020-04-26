@@ -19,14 +19,23 @@ jobs:
       - name: Copy built aria2c exe
         run: |
           mkdir aria2
-          docker cp ${{steps.ccont.outputs.id}}:/aria2c.exe aria2
+          docker cp ${{steps.ccont.outputs.id}}:/aria2/src/aria2c.exe aria2
+          cd aria2
+          zip aria2-i686-win.zip aria2c.exe
       - name: rm the container and image
         run: |
           docker rm ${{steps.ccont.outputs.id}}
           docker image rm aria2_i686_mingw
-      - name: Upload artifact
-        uses: actions/upload-artifact@v1
+      - name: Build upload url
+        id: bldurl
+        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-win.zip
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: aria2-win
-          path: aria2
+          upload_url: ${{ steps.bldurl.url }}
+          asset_path: aria2/aria2-i686-win.zip
+          asset_name: aria2-i686-win.zip
+          asset_content_type: application/zip
 
