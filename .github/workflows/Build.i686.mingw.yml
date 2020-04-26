@@ -19,7 +19,7 @@ jobs:
       - name: Copy built aria2c exe
         run: |
           mkdir aria2
-          docker cp ${{steps.ccont.outputs.id}}:/aria2/src/aria2c.exe aria2
+          docker cp ${{steps.ccont.outputs.id}}:/aria2c.exe aria2
           cd aria2
           zip aria2-i686-win.zip aria2c.exe
       - name: rm the container and image
@@ -34,7 +34,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.bldurl.url }}
+          upload_url: ${{ steps.bldurl.outputs.url }}
           asset_path: aria2/aria2-i686-win.zip
           asset_name: aria2-i686-win.zip
           asset_content_type: application/zip
