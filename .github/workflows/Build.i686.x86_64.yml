@@ -1,0 +1,72 @@
+
+name: Build aria2c {i686, x86_64} for {Windows, linux}
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-i686-mingw:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build aria2 Docker image
+        run: docker build -t aria2_i686_mingw -f Dockerfile.i686.mingw .
+      - name: Create a container
+        id: ccont
+        run: echo ::set-output name=id::$(docker create aria2_i686_mingw /bin/bash)
+      - name: Copy built aria2c exe
+        run: |
+          mkdir aria2
+          docker cp ${{steps.ccont.outputs.id}}:/aria2c.exe aria2
+          cd aria2
+          zip aria2-i686-win.zip aria2c.exe
+      - name: rm the container and image
+        run: |
+          docker rm ${{steps.ccont.outputs.id}}
+          docker image rm aria2_i686_mingw
+      - name: Build upload url
+        id: bldurl
+        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-win.zip
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.bldurl.outputs.url }}
+          asset_path: aria2/aria2-i686-win.zip
+          asset_name: aria2-i686-win.zip
+          asset_content_type: application/zip
+  build-x86_64-mingw:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build aria2 Docker image
+        run: docker build -t aria2_x86_64_mingw -f Dockerfile.x86_64.mingw .
+      - name: Create a container
+        id: ccont
+        run: echo ::set-output name=id::$(docker create aria2_x86_64_mingw /bin/bash)
+      - name: Copy built aria2c exe
+        run: |
+          mkdir aria2
+          docker cp ${{steps.ccont.outputs.id}}:/aria2c.exe aria2
+          cd aria2
+          zip aria2-x86_64-win.zip aria2c.exe
+      - name: rm the container and image
+        run: |
+          docker rm ${{steps.ccont.outputs.id}}
+          docker image rm aria2_x86_64_mingw
+      - name: Build upload url
+        id: bldurl
+        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-win.zip
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.bldurl.outputs.url }}
+          asset_path: aria2/aria2-x86_64-win.zip
+          asset_name: aria2-x86_64-win.zip
+          asset_content_type: application/zip
