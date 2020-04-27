@@ -4,15 +4,15 @@ FROM cgdoc/mingw-w64-multilib:latest AS centos7_image
 
 ARG BUILDROOT=/opt
 ARG SRC=$BUILDROOT/_src/
-ARG HOST=i686-w64-mingw32
+ARG HOST=x86_64-w64-mingw32
 ARG BUILD=x86_64-w64-mingw32
 ARG PREFIX=/opt/aria2-$HOST-build
 
 ARG ARIA2_DIR=/aria2/src/
 
 
-ARG CFLAGS="-m32 -march=i686 -Os"
-ARG CXXFLAGS="-m32 -march=i686 -Os"
+ARG CFLAGS="-m64 -march=x86-64 -Os"
+ARG CXXFLAGS="-m64 -march=x86-64 -Os"
 
 ENV CC=$BUILD-gcc
 ENV CXX=$BUILD-g++
@@ -42,7 +42,7 @@ RUN mkdir -p $PREFIX && cd $SRC \
 	&& mkdir aria2-1.35.0 && tar zxvf aria2-1.35.0.tar.gz -C aria2-1.35.0 --strip-components=1 \
 \
 	&& cd zlib-1.2.11/ \
-	&& ./configure --prefix=$PREFIX --static \
+	&& ./configure --prefix=$PREFIX --static --64 \
 	&& make -j `nproc` && make install \
 \
 	&& cd ../expat-2.2.6/ \
@@ -54,7 +54,7 @@ RUN mkdir -p $PREFIX && cd $SRC \
 	&& make -j `nproc` && make install \
 \
 	&& cd ../openssl-1.1.1b/ \
-	&& CC=gcc CXX=g++ AR=ar RANLIB=ranlib ./Configure mingw --cross-compile-prefix=$BUILD- --prefix=$PREFIX shared \
+	&& CC=gcc CXX=g++ AR=ar RANLIB=ranlib ./Configure mingw64 --cross-compile-prefix=$BUILD- --prefix=$PREFIX shared \
 	&& make -j `nproc` && make install \
 \
 	&& cd ../sqlite-autoconf-3310100/ \
