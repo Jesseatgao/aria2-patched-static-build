@@ -5,4 +5,5 @@ static auto build for Windows (TODO: Linux, MAC OSX, Android) with patched featu
 * aria2: [https://github.com/aria2/aria2](https://github.com/aria2/aria2)
 * aria2 Online Manual: [https://aria2.github.io/manual/en/html/](https://aria2.github.io/manual/en/html/)
 * aria2-build-msys2: [https://github.com/myfreeer/aria2-build-msys2](https://github.com/myfreeer/aria2-build-msys2)
+* upload-to-release: [https://github.com/JasonEtco/upload-to-release](https://github.com/JasonEtco/upload-to-release)
 * Docker: [https://www.docker.com/](https://www.docker.com/)
