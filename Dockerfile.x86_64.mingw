@@ -5,22 +5,21 @@ FROM cgdoc/mingw-w64-multilib:latest AS centos7_image
 ARG BUILDROOT=/opt
 ARG SRC=$BUILDROOT/_src/
 ARG HOST=x86_64-w64-mingw32
-ARG BUILD=x86_64-w64-mingw32
+ARG MINGW32=x86_64-w64-mingw32
 ARG PREFIX=/opt/aria2-$HOST-build
 
 ARG ARIA2_DIR=/aria2/src/
 
 
-ARG CFLAGS="-m64 -march=x86-64 -Os"
-ARG CXXFLAGS="-m64 -march=x86-64 -Os"
+ARG CFLAGS="-m64 -O2"
+ARG CXXFLAGS="-m64 -O2"
 
-ENV CC=$BUILD-gcc
-ENV CXX=$BUILD-g++
-ENV AR=$BUILD-ar
-ENV RANLIB=$BUILD-ranlib
+ENV CC=$MINGW32-gcc
+ENV CXX=$MINGW32-g++
+ENV AR=$MINGW32-ar
+ENV RANLIB=$MINGW32-ranlib
 
 ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
-ARG LD_LIBRARY_PATH=$PREFIX/lib/
 
 # implicitly created $SRC
 ADD aria2.patch $SRC
@@ -54,7 +53,7 @@ RUN mkdir -p $PREFIX && cd $SRC \
 	&& make -j `nproc` && make install \
 \
 	&& cd ../openssl-1.1.1b/ \
-	&& CC=gcc CXX=g++ AR=ar RANLIB=ranlib ./Configure mingw64 --cross-compile-prefix=$BUILD- --prefix=$PREFIX shared \
+	&& CC=gcc CXX=g++ AR=ar RANLIB=ranlib ./Configure mingw64 --cross-compile-prefix=$MINGW32- --prefix=$PREFIX shared \
 	&& make -j `nproc` && make install \
 \
 	&& cd ../sqlite-autoconf-3310100/ \
@@ -62,7 +61,7 @@ RUN mkdir -p $PREFIX && cd $SRC \
 	&& make -j `nproc` && make install \
 \
 	&& cd ../libssh2-1.9.0/ \
-	&& ./configure --without-libgcrypt --with-openssl --without-wincng --prefix=$PREFIX \
+	&& ./configure --with-crypto=openssl --prefix=$PREFIX \
 		--host=$HOST --enable-static --disable-shared \
 	&& make -j `nproc` && make install \
 \
@@ -73,7 +72,7 @@ RUN mkdir -p $PREFIX && cd $SRC \
 		--with-libcares --without-gnutls --without-wintls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
 		--with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle --with-cppunit-prefix=$PREFIX \
 		ARIA2_STATIC=yes \
-	&& make -j `nproc` && $BUILD-strip src/aria2c.exe \
+	&& make -j `nproc` && $MINGW32-strip src/aria2c.exe \
 	&& mkdir -p $ARIA2_DIR && cp src/aria2c.exe $ARIA2_DIR \
 \
 	&& rm -rf $SRC && rm -rf $PREFIX
