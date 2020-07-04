@@ -1,5 +1,5 @@
 
-FROM cgdoc/mingw-w64-multilib:latest AS centos7_image
+FROM cgdoc/mingw-w64-multilib:posix-v1.0 AS centos7_image
 
 
 ARG BUILDROOT=/opt
