@@ -1,6 +1,6 @@
-diff -ruN aria2-orig/aria2-master/src/DownloadCommand.cc aria2-patched/aria2-master/src/DownloadCommand.cc
---- aria2-orig/aria2-master/src/DownloadCommand.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/DownloadCommand.cc	2019-10-10 21:07:40.000000000 +0000
+diff -ruN aria2-master/src/DownloadCommand.cc aria2-master/src/DownloadCommand.cc
+--- aria2-master/src/DownloadCommand.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/DownloadCommand.cc	2019-10-10 21:07:40.000000000 +0000
 @@ -306,7 +306,7 @@
            startupIdleTime_) {
      int nowSpeed = peerStat_->calculateDownloadSpeed();
@@ -10,9 +10,9 @@ diff -ruN aria2-orig/aria2-master/src/DownloadCommand.cc aria2-patched/aria2-mas
                               lowestDownloadSpeedLimit_,
                               getRequest()->getHost().c_str()),
                           error_code::TOO_SLOW_DOWNLOAD_SPEED);
-diff -ruN aria2-orig/aria2-master/src/HttpSkipResponseCommand.cc aria2-patched/aria2-master/src/HttpSkipResponseCommand.cc
---- aria2-orig/aria2-master/src/HttpSkipResponseCommand.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/HttpSkipResponseCommand.cc	2019-10-10 21:36:40.000000000 +0000
+diff -ruN aria2-master/src/HttpSkipResponseCommand.cc aria2-master/src/HttpSkipResponseCommand.cc
+--- aria2-master/src/HttpSkipResponseCommand.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/HttpSkipResponseCommand.cc	2019-10-10 21:36:40.000000000 +0000
 @@ -204,7 +204,7 @@
    auto statusCode = httpResponse_->getStatusCode();
    if (statusCode >= 400) {
@@ -86,9 +86,9 @@ diff -ruN aria2-orig/aria2-master/src/HttpSkipResponseCommand.cc aria2-patched/a
      throw DL_ABORT_EX2(fmt(EX_BAD_STATUS, statusCode),
                         error_code::HTTP_PROTOCOL_ERROR);
    }
-diff -ruN aria2-orig/aria2-master/src/OptionHandlerFactory.cc aria2-patched/aria2-master/src/OptionHandlerFactory.cc
---- aria2-orig/aria2-master/src/OptionHandlerFactory.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/OptionHandlerFactory.cc	2019-10-10 21:49:58.000000000 +0000
+diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandlerFactory.cc
+--- aria2-master/src/OptionHandlerFactory.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/OptionHandlerFactory.cc	2019-10-10 21:49:58.000000000 +0000
 @@ -158,7 +158,7 @@
    }
    {
@@ -217,9 +217,9 @@ diff -ruN aria2-orig/aria2-master/src/OptionHandlerFactory.cc aria2-patched/aria
          /* acceptStdin = */ false, 0, /* mustExist = */ false));
      handlers.push_back(op);
    }
-diff -ruN aria2-orig/aria2-master/src/OptionHandlerImpl.cc aria2-patched/aria2-master/src/OptionHandlerImpl.cc
---- aria2-orig/aria2-master/src/OptionHandlerImpl.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/OptionHandlerImpl.cc	2019-10-10 17:10:30.000000000 +0000
+diff -ruN aria2-master/src/OptionHandlerImpl.cc aria2-master/src/OptionHandlerImpl.cc
+--- aria2-master/src/OptionHandlerImpl.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/OptionHandlerImpl.cc	2019-10-10 17:10:30.000000000 +0000
 @@ -548,7 +548,7 @@
      option.put(pref_, DEV_STDIN);
    }
@@ -229,9 +229,9 @@ diff -ruN aria2-orig/aria2-master/src/OptionHandlerImpl.cc aria2-patched/aria2-m
      if (mustExist_) {
        File f(path);
        std::string err;
-diff -ruN aria2-orig/aria2-master/src/SocketBuffer.cc aria2-patched/aria2-master/src/SocketBuffer.cc
---- aria2-orig/aria2-master/src/SocketBuffer.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/SocketBuffer.cc	2019-10-11 01:00:46.000000000 +0000
+diff -ruN aria2-master/src/SocketBuffer.cc aria2-master/src/SocketBuffer.cc
+--- aria2-master/src/SocketBuffer.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/SocketBuffer.cc	2019-10-11 01:00:46.000000000 +0000
 @@ -39,6 +39,7 @@
  
  #include "SocketCore.h"
@@ -249,9 +249,9 @@ diff -ruN aria2-orig/aria2-master/src/SocketBuffer.cc aria2-patched/aria2-master
      }
      // A2_LOG_NOTICE(fmt("num=%zu, amount=%d, bufq.size()=%zu, SEND=%d",
      //                   num, amount, bufq_.size(), slen));
-diff -ruN aria2-orig/aria2-master/src/SocketCore.cc aria2-patched/aria2-master/src/SocketCore.cc
---- aria2-orig/aria2-master/src/SocketCore.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/SocketCore.cc	2019-10-10 21:09:36.000000000 +0000
+diff -ruN aria2-master/src/SocketCore.cc aria2-master/src/SocketCore.cc
+--- aria2-master/src/SocketCore.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/SocketCore.cc	2019-10-10 21:09:36.000000000 +0000
 @@ -1015,7 +1015,7 @@
  
      if (rv == TLS_ERR_ERROR) {
@@ -261,9 +261,9 @@ diff -ruN aria2-orig/aria2-master/src/SocketCore.cc aria2-patched/aria2-master/s
                              handshakeError.empty()
                                  ? tlsSession_->getLastErrorString().c_str()
                                  : handshakeError.c_str()));
-diff -ruN aria2-orig/aria2-master/src/option_processing.cc aria2-patched/aria2-master/src/option_processing.cc
---- aria2-orig/aria2-master/src/option_processing.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/option_processing.cc	2019-10-10 21:16:46.000000000 +0000
+diff -ruN aria2-master/src/option_processing.cc aria2-master/src/option_processing.cc
+--- aria2-master/src/option_processing.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/option_processing.cc	2019-10-10 21:16:46.000000000 +0000
 @@ -319,6 +319,22 @@
      }
    }
@@ -295,9 +295,9 @@ diff -ruN aria2-orig/aria2-master/src/option_processing.cc aria2-patched/aria2-m
    }
    if (op.getAsBool(PREF_DEFERRED_INPUT) && op.defined(PREF_SAVE_SESSION)) {
      A2_LOG_WARN("--deferred-input is disabled because of the presence of "
-diff -ruN aria2-orig/aria2-master/src/prefs.cc aria2-patched/aria2-master/src/prefs.cc
---- aria2-orig/aria2-master/src/prefs.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/prefs.cc	2019-10-10 21:54:40.000000000 +0000
+diff -ruN aria2-master/src/prefs.cc aria2-master/src/prefs.cc
+--- aria2-master/src/prefs.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/prefs.cc	2019-10-10 21:54:40.000000000 +0000
 @@ -326,6 +326,14 @@
  PrefPtr PREF_MAX_DOWNLOAD_RESULT = makePref("max-download-result");
  // value: 1*digit
@@ -313,9 +313,9 @@ diff -ruN aria2-orig/aria2-master/src/prefs.cc aria2-patched/aria2-master/src/pr
  // value: string
  PrefPtr PREF_ASYNC_DNS_SERVER = makePref("async-dns-server");
  // value: true | false
-diff -ruN aria2-orig/aria2-master/src/prefs.h aria2-patched/aria2-master/src/prefs.h
---- aria2-orig/aria2-master/src/prefs.h	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/prefs.h	2019-10-10 21:55:58.000000000 +0000
+diff -ruN aria2-master/src/prefs.h aria2-master/src/prefs.h
+--- aria2-master/src/prefs.h	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/prefs.h	2019-10-10 21:55:58.000000000 +0000
 @@ -279,6 +279,14 @@
  extern PrefPtr PREF_MAX_DOWNLOAD_RESULT;
  // value: 1*digit
@@ -331,9 +331,9 @@ diff -ruN aria2-orig/aria2-master/src/prefs.h aria2-patched/aria2-master/src/pre
  // value: string
  extern PrefPtr PREF_ASYNC_DNS_SERVER;
  // value: true | false
-diff -ruN aria2-orig/aria2-master/src/usage_text.h aria2-patched/aria2-master/src/usage_text.h
---- aria2-orig/aria2-master/src/usage_text.h	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/usage_text.h	2019-10-10 21:58:04.000000000 +0000
+diff -ruN aria2-master/src/usage_text.h aria2-master/src/usage_text.h
+--- aria2-master/src/usage_text.h	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/usage_text.h	2019-10-10 21:58:04.000000000 +0000
 @@ -64,6 +64,22 @@
    _(" --retry-wait=SEC             Set the seconds to wait between retries. \n" \
      "                              With SEC > 0, aria2 will retry download when the\n" \
@@ -357,9 +357,9 @@ diff -ruN aria2-orig/aria2-master/src/usage_text.h aria2-patched/aria2-master/sr
  #define TEXT_TIMEOUT                                            \
    _(" -t, --timeout=SEC            Set timeout in seconds.")
  #define TEXT_MAX_TRIES                                                  \
-diff -ruN aria2-orig/aria2-master/src/util.cc aria2-patched/aria2-master/src/util.cc
---- aria2-orig/aria2-master/src/util.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-patched/aria2-master/src/util.cc	2019-10-10 17:15:38.000000000 +0000
+diff -ruN aria2-master/src/util.cc aria2-master/src/util.cc
+--- aria2-master/src/util.cc	2019-10-06 11:36:08.000000000 +0000
++++ aria2-master/src/util.cc	2019-10-10 17:15:38.000000000 +0000
 @@ -1805,9 +1805,12 @@
  
  std::string getConfigFile()
