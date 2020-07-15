@@ -89,8 +89,9 @@ ARG HOST=i686-w64-mingw32
 #ARG HOST=x86_64-unknown-linux-gnu
 #ARG HOST=x86_64-w64-mingw32
 
-ARG CFLAGS="-m32 -march=i686 -mno-ms-bitfields -DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -D_FILE_OFFSET_BITS=64 -fstack-protector-strong"
-ARG CXXFLAGS="-m32 -march=i686 -mno-ms-bitfields -DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -D_FILE_OFFSET_BITS=64 -fstack-protector-strong"
+ARG CFLAGS="-m32 -march=i686 -mno-ms-bitfields -fstack-protector-strong"
+ARG CXXFLAGS="-m32 -march=i686 -mno-ms-bitfields -fstack-protector-strong"
+ARG CPPFLAGS="-DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -D_FILE_OFFSET_BITS=64"
 ARG LDFLAGS="-m32 -march=i686 -fstack-protector-strong -fpie -Wl,-pie -Wl,--dynamicbase -Wl,--nxcompat -Wl,--disable-auto-image-base -Wl,-e_mainCRTStartup"
 
 ARG WINDRES_FLAGS="-F pe-i386"
@@ -100,10 +101,15 @@ ENV WINDRES "${MINGW32}windres ${WINDRES_FLAGS}"
 ENV RC $WINDRES
 ENV DLLTOOL "${MINGW32}dlltool ${DLLTOOL_FLAGS}"
 
-ARG BUILDROOT=/opt/mingw
-ARG PREFIX=$BUILDROOT/aria2-$HOST-build
 
-ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
+#ARG BUILDROOT=/opt/mingw32/_buildroot
+ARG MINGW32_SEARCH_PATH=/opt/mingw32
+ARG PREFIX=${MINGW32_SEARCH_PATH}/$HOST
+
+ARG PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig/
+
+ARG CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+ARG LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 
 RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 \
@@ -112,7 +118,7 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/expat-$EXPAT_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/c-ares-${C_ARES_VER}/ \
@@ -120,16 +126,16 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/openssl-$OPENSSL_VER/ \
-	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX shared no-tests \
+	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/libssh2-$LIBSSH2_VER/ \
 	&& ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
-		--host=$HOST --enable-static --disable-shared \
+		--host=$HOST --enable-static --disable-shared --disable-examples-build \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/aria2-$ARIA2_VER/ \
@@ -157,8 +163,9 @@ ARG HOST=x86_64-w64-mingw32
 #ARG HOST=i686-unknown-linux-gnu
 #ARG HOST=i686-w64-mingw32
 
-ARG CFLAGS="-m64 -mno-ms-bitfields -DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -D_FILE_OFFSET_BITS=64 -fstack-protector-strong"
-ARG CXXFLAGS="-m64 -mno-ms-bitfields -DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -D_FILE_OFFSET_BITS=64 -fstack-protector-strong"
+ARG CFLAGS="-m64 -mno-ms-bitfields -fstack-protector-strong"
+ARG CXXFLAGS="-m64 -mno-ms-bitfields -fstack-protector-strong"
+ARG CPPFLAGS="-DWINVER=0x0601 -D_WIN32_WINNT=0x0601 -D_FILE_OFFSET_BITS=64"
 ARG LDFLAGS="-m64 -fstack-protector-strong -fpie -Wl,-pie -Wl,--dynamicbase -Wl,--nxcompat -Wl,--disable-auto-image-base -Wl,--high-entropy-va -Wl,--image-base,0x140000000 -Wl,-emainCRTStartup"
 
 ARG WINDRES_FLAGS="-F pe-x86-64"
@@ -168,10 +175,15 @@ ENV WINDRES "${MINGW32}windres ${WINDRES_FLAGS}"
 ENV RC $WINDRES
 ENV DLLTOOL "${MINGW32}dlltool ${DLLTOOL_FLAGS}"
 
-ARG BUILDROOT=/opt/mingw
-ARG PREFIX=$BUILDROOT/aria2-$HOST-build
 
-ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
+#ARG BUILDROOT=/opt/mingw32/_buildroot
+ARG MINGW32_SEARCH_PATH=/opt/mingw32
+ARG PREFIX=${MINGW32_SEARCH_PATH}/$HOST
+
+ARG PKG_CONFIG_PATH=${PREFIX}/lib/pkgconfig/
+
+ARG CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+ARG LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 
 RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 \
@@ -180,7 +192,7 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/expat-$EXPAT_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/c-ares-${C_ARES_VER}/ \
@@ -188,16 +200,16 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/openssl-$OPENSSL_VER/ \
-	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX shared no-tests \
+	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/libssh2-$LIBSSH2_VER/ \
 	&& ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
-		--host=$HOST --enable-static --disable-shared \
+		--host=$HOST --enable-static --disable-shared --disable-examples-build \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/aria2-$ARIA2_VER/ \

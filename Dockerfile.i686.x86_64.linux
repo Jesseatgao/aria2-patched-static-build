@@ -113,7 +113,7 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/expat-$EXPAT_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/c-ares-${C_ARES_VER}/ \
@@ -121,16 +121,16 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/openssl-$OPENSSL_VER/ \
-	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX shared no-tests \
+	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/libssh2-$LIBSSH2_VER/ \
 	&& ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
-		--host=$HOST --enable-static --disable-shared \
+		--host=$HOST --enable-static --disable-shared --disable-examples-build \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/aria2-$ARIA2_VER/ \
@@ -181,7 +181,7 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/expat-$EXPAT_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/c-ares-${C_ARES_VER}/ \
@@ -189,16 +189,16 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/openssl-$OPENSSL_VER/ \
-	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX shared no-tests \
+	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared \
+	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/libssh2-$LIBSSH2_VER/ \
 	&& ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
-		--host=$HOST --enable-static --disable-shared \
+		--host=$HOST --enable-static --disable-shared --disable-examples-build \
 	&& make -j `nproc` && make install \
 \
 	&& cd $SRC/aria2-$ARIA2_VER/ \
