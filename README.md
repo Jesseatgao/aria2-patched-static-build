@@ -1,5 +1,5 @@
 # aria2 - The ultra fast download utility
-static auto build for Windows (TODO: Linux, MAC OSX, Android) with patched features using Docker and GitHub workflow
+static auto build for Windows and Linux (TODO: MAC OSX, Android) with patched features using Docker and GitHub workflow
 
 ##  References
 * aria2: [https://github.com/aria2/aria2](https://github.com/aria2/aria2)
