@@ -2,7 +2,7 @@
 ARG ARIA2_BIN=aria2c
 
 ###################Stage 0: ######################
-FROM cgdoc/mingw-w64-multilib:posix-v1.0 AS builder
+FROM cgdoc/mingw-w64-multilib:posix-v1.1 AS builder
 
 #ENV BUILD=x86_64-unknown-linux-gnu
 
@@ -34,8 +34,7 @@ ENV ARIA2_VER=1.35.0
 # implicitly created $SRC
 ADD aria2-1.35.0.conf.patch $SRC
 
-RUN yum install -y libstdc++-static.i686 libstdc++-static.x86_64 glibc-static.i686 glibc-static.x86_64 \
-	&& cd $SRC \
+RUN cd $SRC \
 	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/zlib/zlib-$ZLIB_VER.tar.xz \
 	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/expat/expat-$EXPAT_VER.tar.bz2 \
 	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/c-ares/c-ares-${C_ARES_VER}.tar.gz \
