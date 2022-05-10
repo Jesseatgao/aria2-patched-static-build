@@ -1,8 +1,10 @@
 # `aria2c`, `aria2c.exe` for Linux and Windows respectively
 ARG ARIA2_BIN=aria2c
 
+ARG MINGW-W64-IMG=cgdoc/mingw-w64-multilib:win32-v1.2
+
 ###################Stage 0: ######################
-FROM cgdoc/mingw-w64-multilib:posix-v1.1 AS builder
+FROM $MINGW-W64-IMG AS builder
 
 #ENV BUILD=x86_64-unknown-linux-gnu
 
@@ -28,6 +30,9 @@ ENV C_ARES_VER=1.15.0
 ENV OPENSSL_VER=1.1.1b
 ENV SQLITE_VER=3310100
 ENV LIBSSH2_VER=1.9.0
+ARG GMP_VER=6.2.1
+ARG NETTLE_VER=3.7.3
+ARG GNUTLS_VER=3.6.16
 ENV ARIA2_VER=1.35.0
 
 
@@ -35,49 +40,52 @@ ENV ARIA2_VER=1.35.0
 ADD aria2-1.35.0.conf.patch $SRC
 
 RUN cd $SRC \
-	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/zlib/zlib-$ZLIB_VER.tar.xz \
-	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/expat/expat-$EXPAT_VER.tar.bz2 \
-	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/c-ares/c-ares-${C_ARES_VER}.tar.gz \
-	&& curl -L -O http://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
-	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/sqlite3/sqlite-autoconf-$SQLITE_VER.tar.gz \
-	&& curl -L -O https://mirrors.aliyun.com/macports/distfiles/libssh2/libssh2-$LIBSSH2_VER.tar.gz \
-	&& curl -L -o aria2-$ARIA2_VER.tar.gz  https://github.com/aria2/aria2/archive/release-$ARIA2_VER.tar.gz \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/zlib/zlib-$ZLIB_VER.tar.xz \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/expat/expat-$EXPAT_VER.tar.bz2 \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/c-ares/c-ares-${C_ARES_VER}.tar.gz \
+    && curl -L -O http://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/sqlite3/sqlite-autoconf-$SQLITE_VER.tar.gz \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/libssh2/libssh2-$LIBSSH2_VER.tar.gz \
+    && curl -L -O https://ftp.gnu.org/gnu/gmp/gmp-$GMP_VER.tar.xz \
+    && curl -L -O https://ftp.gnu.org/gnu/nettle/nettle-$NETTLE_VER.tar.gz \
+    && curl -L -O https://distfiles.macports.org/gnutls/gnutls-$GNUTLS_VER.tar.xz \
+    && curl -L -o aria2-$ARIA2_VER.tar.gz  https://github.com/aria2/aria2/archive/release-$ARIA2_VER.tar.gz \
 \
-	&& /bin/bash -c \
-	'\
-	cd $SRC; pkgs=$(ls|grep -e "\.gz$\|\.xz$\|\.bz2$\|\.zip$"); \
-	for pkg in $pkgs; \
-	do \
-	    pkg_name=$(echo $pkg|sed -n "s/\(.\+\)\(\.tar\.gz\|\.tar\.xz\|\.tar\.bz2\|\.zip\)$/\1/p"); \
-	    mkdir -p $pkg_name; \
-	    case $pkg in \
-	        *\.gz) \
-	        tar zxvf $pkg -C $pkg_name --strip-components=1;; \
-	        *\.xz) \
-	        tar Jxvf $pkg -C $pkg_name --strip-components=1;; \
-	        *\.bz2) \
-	        tar jxvf $pkg -C $pkg_name --strip-components=1;; \
-	        *\.zip) \
-	        unzip $pkg -d $pkg_name;; \
-	    esac; \
-	done; \
-	patches=$(ls|grep -e \.patch$); for patch in $patches; \
-	do \
-	    if [[ $patch =~ \.conf\.patch$ ]]; then \
-	        patch_name=$(echo $patch|sed -n "s/\(.\+\)\.conf\.patch$/\1/p"); \
-	        [[ -d $patch_name ]] && cd $patch_name && \
-	        git apply -v -p1 < ../$patch && \
-	        autoreconf -if && \
-	        cd ..; \
-	    else \
-	        patch_name=$(echo $patch|sed -n "s/\(.\+\)\.patch$/\1/p"); \
-	        [[ -d $patch_name ]] && cd $patch_name && \
-	        git apply -v -p1 < ../$patch && \
-	        cd ..; \
-	    fi; \
-	done\
-	' \
-	&& ln -s aria2-$ARIA2_VER aria2
+    && /bin/bash -c \
+    '\
+    cd $SRC; pkgs=$(ls|grep -e "\.gz$\|\.xz$\|\.bz2$\|\.zip$"); \
+    for pkg in $pkgs; \
+    do \
+        pkg_name=$(echo $pkg|sed -n "s/\(.\+\)\(\.tar\.gz\|\.tar\.xz\|\.tar\.bz2\|\.zip\)$/\1/p"); \
+        mkdir -p $pkg_name; \
+        case $pkg in \
+            *\.gz) \
+            tar zxvf $pkg -C $pkg_name --strip-components=1;; \
+            *\.xz) \
+            tar Jxvf $pkg -C $pkg_name --strip-components=1;; \
+            *\.bz2) \
+            tar jxvf $pkg -C $pkg_name --strip-components=1;; \
+            *\.zip) \
+            unzip $pkg -d $pkg_name;; \
+        esac; \
+    done; \
+    patches=$(ls|grep -e \.patch$); for patch in $patches; \
+    do \
+        if [[ $patch =~ \.conf\.patch$ ]]; then \
+            patch_name=$(echo $patch|sed -n "s/\(.\+\)\.conf\.patch$/\1/p"); \
+            [[ -d $patch_name ]] && cd $patch_name && \
+            git apply -v -p1 < ../$patch && \
+            autoreconf -if && \
+            cd ..; \
+        else \
+            patch_name=$(echo $patch|sed -n "s/\(.\+\)\.patch$/\1/p"); \
+            [[ -d $patch_name ]] && cd $patch_name && \
+            git apply -v -p1 < ../$patch && \
+            cd ..; \
+        fi; \
+    done\
+    ' \
+    && ln -s aria2-$ARIA2_VER aria2
 
 ###################Stage 1: ######################
 FROM builder AS build_i686
@@ -105,40 +113,52 @@ ARG PREFIX=$BUILDROOT/aria2-$HOST-build
 
 ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
 
-RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
+RUN mkdir -p $PREFIX $PKG_CONFIG_PATH \
 \
-	&& cd $SRC/zlib-$ZLIB_VER/ \
-	&& ./configure --prefix=$PREFIX --static \
-	&& make -j `nproc` && make install \
+    && cd $SRC/zlib-$ZLIB_VER/ \
+    && ./configure --prefix=$PREFIX --static \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/expat-$EXPAT_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
-	&& make -j `nproc` && make install \
+    && cd $SRC/expat-$EXPAT_VER/ \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --enable-shared=no --without-docbook \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/c-ares-${C_ARES_VER}/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --disable-shared \
-	&& make -j `nproc` && make install \
+    && cd $SRC/c-ares-${C_ARES_VER}/ \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/openssl-$OPENSSL_VER/ \
-	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
-	&& make -j `nproc` && make install \
+    && cd $SRC/openssl-$OPENSSL_VER/ \
+    && ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
-	&& make -j `nproc` && make install \
+    && cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --enable-shared=no \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/libssh2-$LIBSSH2_VER/ \
-	&& ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
-		--host=$HOST --enable-static --disable-shared --disable-examples-build \
-	&& make -j `nproc` && make install \
+    && cd $SRC/libssh2-$LIBSSH2_VER/ \
+    && ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
+        --host=$HOST --enable-static=yes --disable-shared --disable-examples-build \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/aria2-$ARIA2_VER/ \
-	&& ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
-		--with-libcares --without-gnutls --without-wintls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
-		--with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle --with-cppunit-prefix=$PREFIX \
-		ARIA2_STATIC=yes \
-	&& make -j `nproc` && $STRIP src/$ARIA2_BIN
-	
+    && cd $SRC/gmp-$GMP_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/nettle-$NETTLE_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/gnutls-$GNUTLS_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/aria2-$ARIA2_VER/ \
+    && ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
+        --with-libcares --with-sqlite3 --without-libxml2 --with-libexpat \
+        --with-libz --with-libssh2 --without-libgcrypt \
+        ARIA2_STATIC=yes \
+    && make -j `nproc` && $STRIP src/$ARIA2_BIN
+
 
 ###################Stage 2: ######################
 FROM scratch AS aria2_build
@@ -175,38 +195,50 @@ ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
 
 RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 \
-	&& cd $SRC/zlib-$ZLIB_VER/ \
-	&& ./configure --prefix=$PREFIX --static \
-	&& make -j `nproc` && make install \
+    && cd $SRC/zlib-$ZLIB_VER/ \
+    && ./configure --prefix=$PREFIX --static \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/expat-$EXPAT_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
-	&& make -j `nproc` && make install \
+    && cd $SRC/expat-$EXPAT_VER/ \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no --without-docbook \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/c-ares-${C_ARES_VER}/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --disable-shared \
-	&& make -j `nproc` && make install \
+    && cd $SRC/c-ares-${C_ARES_VER}/ \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static --disable-shared \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/openssl-$OPENSSL_VER/ \
-	&& ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
-	&& make -j `nproc` && make install \
+    && cd $SRC/openssl-$OPENSSL_VER/ \
+    && ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX no-shared no-tests \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
-	&& ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
-	&& make -j `nproc` && make install \
+    && cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static --enable-shared=no \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/libssh2-$LIBSSH2_VER/ \
-	&& ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
-		--host=$HOST --enable-static --disable-shared --disable-examples-build \
-	&& make -j `nproc` && make install \
+    && cd $SRC/libssh2-$LIBSSH2_VER/ \
+    && ./configure --prefix=$PREFIX --with-crypto=openssl --with-libssl-prefix=$PREFIX --with-libz-prefix=$PREFIX \
+        --host=$HOST --enable-static --disable-shared --disable-examples-build \
+    && make -j `nproc` && make install \
 \
-	&& cd $SRC/aria2-$ARIA2_VER/ \
-	&& ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
-		--with-libcares --without-gnutls --without-wintls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
-		--with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle --with-cppunit-prefix=$PREFIX \
-		ARIA2_STATIC=yes \
-	&& make -j `nproc` && $STRIP src/$ARIA2_BIN
-	
+    && cd $SRC/gmp-$GMP_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/nettle-$NETTLE_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/gnutls-$GNUTLS_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/aria2-$ARIA2_VER/ \
+    && ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
+        --with-libcares --with-sqlite3 --without-libxml2 --with-libexpat \
+        --with-libz --with-libssh2 --without-libgcrypt \
+        ARIA2_STATIC=yes \
+    && make -j `nproc` && $STRIP src/$ARIA2_BIN
+
 
 ###################Stage 4: ######################
 FROM aria2_build
