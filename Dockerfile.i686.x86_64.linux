@@ -1,10 +1,10 @@
 # `aria2c`, `aria2c.exe` for Linux and Windows respectively
 ARG ARIA2_BIN=aria2c
 
-ARG MINGW-W64-IMG=cgdoc/mingw-w64-multilib:win32-v1.2
+ARG MINGW_W64_IMG=cgdoc/mingw-w64-multilib:win32-v1.2
 
 ###################Stage 0: ######################
-FROM $MINGW-W64-IMG AS builder
+FROM $MINGW_W64_IMG AS builder
 
 #ENV BUILD=x86_64-unknown-linux-gnu
 
@@ -29,7 +29,7 @@ ENV EXPAT_VER=2.2.6
 ENV C_ARES_VER=1.15.0
 ENV OPENSSL_VER=1.1.1b
 ENV SQLITE_VER=3310100
-ENV LIBSSH2_VER=1.9.0
+ENV LIBSSH2_VER=1.10.0
 ARG GMP_VER=6.2.1
 ARG NETTLE_VER=3.7.3
 ARG GNUTLS_VER=3.6.16
