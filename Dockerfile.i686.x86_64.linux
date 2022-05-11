@@ -113,6 +113,9 @@ ARG PREFIX=$BUILDROOT/aria2-$HOST-build
 
 ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
 
+ARG CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+ARG LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
+
 RUN mkdir -p $PREFIX $PKG_CONFIG_PATH \
 \
     && cd $SRC/zlib-$ZLIB_VER/ \
@@ -192,6 +195,9 @@ ARG BUILDROOT=/opt/linux
 ARG PREFIX=$BUILDROOT/aria2-$HOST-build
 
 ARG PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig/
+
+ARG CPPFLAGS="${CPPFLAGS} -I${PREFIX}/include"
+ARG LDFLAGS="${LDFLAGS} -L${PREFIX}/lib"
 
 RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
 \
