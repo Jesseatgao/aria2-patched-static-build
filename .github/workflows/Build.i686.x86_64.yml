@@ -21,8 +21,6 @@ jobs:
           mkdir -p aria2/i686 aria2/x86_64
           docker cp ${{steps.ccont.outputs.id}}:/i686/aria2c.exe aria2/i686/
           docker cp ${{steps.ccont.outputs.id}}:/x86_64/aria2c.exe aria2/x86_64/
-          cp -f ca-bundle.crt aria2/i686/
-          cp -f ca-bundle.crt aria2/x86_64/
           cd aria2
           zip aria2-i686-win.zip i686/*
           zip aria2-x86_64-win.zip x86_64/*
@@ -69,8 +67,6 @@ jobs:
           mkdir -p aria2/i686 aria2/x86_64
           docker cp ${{steps.ccont.outputs.id}}:/i686/aria2c aria2/i686/
           docker cp ${{steps.ccont.outputs.id}}:/x86_64/aria2c aria2/x86_64/
-          cp -f ca-bundle.crt aria2/i686/
-          cp -f ca-bundle.crt aria2/x86_64/
           cd aria2
           tar Jcvf aria2-i686-linux.tar.xz i686/*
           tar Jcvf aria2-x86_64-linux.tar.xz x86_64/*
