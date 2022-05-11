@@ -40,7 +40,7 @@ RUN cd $SRC \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/zlib/zlib-$ZLIB_VER.tar.xz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/expat/expat-$EXPAT_VER.tar.bz2 \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/c-ares/c-ares-${C_ARES_VER}.tar.gz \
-    && curl -L -O http://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/sqlite3/sqlite-autoconf-$SQLITE_VER.tar.gz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/libssh2/libssh2-$LIBSSH2_VER.tar.gz \
     && curl -L -o aria2-$ARIA2_VER.tar.gz  https://github.com/aria2/aria2/archive/release-$ARIA2_VER.tar.gz \

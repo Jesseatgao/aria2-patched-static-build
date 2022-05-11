@@ -30,9 +30,6 @@ ENV C_ARES_VER=1.15.0
 ENV OPENSSL_VER=1.1.1b
 ENV SQLITE_VER=3310100
 ENV LIBSSH2_VER=1.10.0
-ENV GMP_VER=6.2.1
-ENV NETTLE_VER=3.7.3
-ENV GNUTLS_VER=3.6.16
 ENV ARIA2_VER=1.35.0
 
 
@@ -43,12 +40,9 @@ RUN cd $SRC \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/zlib/zlib-$ZLIB_VER.tar.xz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/expat/expat-$EXPAT_VER.tar.bz2 \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/c-ares/c-ares-${C_ARES_VER}.tar.gz \
-    && curl -L -O http://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
+    && curl -L -O https://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/sqlite3/sqlite-autoconf-$SQLITE_VER.tar.gz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/libssh2/libssh2-$LIBSSH2_VER.tar.gz \
-    && curl -L -O https://ftp.gnu.org/gnu/gmp/gmp-$GMP_VER.tar.xz \
-    && curl -L -O https://ftp.gnu.org/gnu/nettle/nettle-$NETTLE_VER.tar.gz \
-    && curl -L -O https://distfiles.macports.org/gnutls/gnutls-$GNUTLS_VER.tar.xz \
     && curl -L -o aria2-$ARIA2_VER.tar.gz  https://github.com/aria2/aria2/archive/release-$ARIA2_VER.tar.gz \
 \
     && /bin/bash -c \
@@ -143,22 +137,10 @@ RUN mkdir -p $PREFIX $PKG_CONFIG_PATH \
         --host=$HOST --enable-static=yes --disable-shared --disable-examples-build \
     && make -j `nproc` && make install \
 \
-    && cd $SRC/gmp-$GMP_VER \
-    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
-    && make -j `nproc` && make install \
-\
-    && cd $SRC/nettle-$NETTLE_VER \
-    && ./configure --prefix=$PREFIX --host=$HOST --disable-shared \
-    && make -j `nproc` && make install \
-\
-    && cd $SRC/gnutls-$GNUTLS_VER \
-    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
-    && make -j `nproc` && make install \
-\
     && cd $SRC/aria2-$ARIA2_VER/ \
     && ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
-        --with-libcares --with-sqlite3 --without-libxml2 --with-libexpat \
-        --with-libz --with-libssh2 --without-libgcrypt \
+        --with-libcares --without-gnutls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
+        --with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle \
         ARIA2_STATIC=yes \
     && make -j `nproc` && $STRIP src/$ARIA2_BIN
 
@@ -226,22 +208,10 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
         --host=$HOST --enable-static --disable-shared --disable-examples-build \
     && make -j `nproc` && make install \
 \
-    && cd $SRC/gmp-$GMP_VER \
-    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
-    && make -j `nproc` && make install \
-\
-    && cd $SRC/nettle-$NETTLE_VER \
-    && ./configure --prefix=$PREFIX --host=$HOST --disable-shared \
-    && make -j `nproc` && make install \
-\
-    && cd $SRC/gnutls-$GNUTLS_VER \
-    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
-    && make -j `nproc` && make install \
-\
     && cd $SRC/aria2-$ARIA2_VER/ \
     && ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
-        --with-libcares --with-sqlite3 --without-libxml2 --with-libexpat \
-        --with-libz --with-libssh2 --without-libgcrypt \
+        --with-libcares --without-gnutls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
+        --with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle \
         ARIA2_STATIC=yes \
     && make -j `nproc` && $STRIP src/$ARIA2_BIN
 
