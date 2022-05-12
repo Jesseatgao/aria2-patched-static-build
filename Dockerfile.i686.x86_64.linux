@@ -30,8 +30,13 @@ ENV C_ARES_VER=1.15.0
 ENV OPENSSL_VER=1.1.1b
 ENV SQLITE_VER=3310100
 ENV LIBSSH2_VER=1.10.0
+ENV GMP_VER=6.2.1
+ENV NETTLE_VER=3.7.3
+ENV LIBTASN1_VER=4.18.0
+ENV GNUTLS_VER=3.6.16
 ENV ARIA2_VER=1.35.0
 
+ENV TRUST_STORE_DIR=/etc/ssl/certs
 
 # implicitly created $SRC
 ADD aria2-1.35.0.conf.patch $SRC
@@ -43,6 +48,10 @@ RUN cd $SRC \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/openssl11/openssl-$OPENSSL_VER.tar.gz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/sqlite3/sqlite-autoconf-$SQLITE_VER.tar.gz \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/libssh2/libssh2-$LIBSSH2_VER.tar.gz \
+    && curl -L -O https://ftp.gnu.org/gnu/gmp/gmp-$GMP_VER.tar.xz \
+    && curl -L -O https://ftp.gnu.org/gnu/nettle/nettle-$NETTLE_VER.tar.gz \
+    && curl -L -O https://ftp.gnu.org/gnu/libtasn1/libtasn1-$LIBTASN1_VER.tar.gz \
+    && curl -L -O https://distfiles.macports.org/gnutls/gnutls-$GNUTLS_VER.tar.xz \
     && curl -L -o aria2-$ARIA2_VER.tar.gz  https://github.com/aria2/aria2/archive/release-$ARIA2_VER.tar.gz \
 \
     && /bin/bash -c \
@@ -137,10 +146,26 @@ RUN mkdir -p $PREFIX $PKG_CONFIG_PATH \
         --host=$HOST --enable-static=yes --disable-shared --disable-examples-build \
     && make -j `nproc` && make install \
 \
+    && cd $SRC/gmp-$GMP_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/nettle-$NETTLE_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/libtasn1-$LIBTASN1_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/gnutls-$GNUTLS_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared --with-default-trust-store-dir=$TRUST_STORE_DIR --with-included-unistring --without-p11-kit \
+    && make -j `nproc` && make install \
+\
     && cd $SRC/aria2-$ARIA2_VER/ \
     && ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
-        --with-libcares --without-gnutls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
-        --with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle \
+        --with-libcares --without-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
+        --with-libz --with-libssh2 --without-libgcrypt \
         ARIA2_STATIC=yes \
     && make -j `nproc` && $STRIP src/$ARIA2_BIN
 
@@ -208,10 +233,26 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
         --host=$HOST --enable-static --disable-shared --disable-examples-build \
     && make -j `nproc` && make install \
 \
+    && cd $SRC/gmp-$GMP_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/nettle-$NETTLE_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/libtasn1-$LIBTASN1_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared \
+    && make -j `nproc` && make install \
+\
+    && cd $SRC/gnutls-$GNUTLS_VER \
+    && ./configure --prefix=$PREFIX --host=$HOST --enable-static=yes --disable-shared --with-default-trust-store-dir=$TRUST_STORE_DIR --with-included-unistring --without-p11-kit \
+    && make -j `nproc` && make install \
+\
     && cd $SRC/aria2-$ARIA2_VER/ \
     && ./configure --host=$HOST --prefix=$PREFIX --without-included-gettext --disable-nls \
-        --with-libcares --without-gnutls --with-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
-        --with-libz --without-libgmp --with-libssh2 --without-libgcrypt --without-libnettle \
+        --with-libcares --without-openssl --with-sqlite3 --without-libxml2 --with-libexpat \
+        --with-libz --with-libssh2 --without-libgcrypt \
         ARIA2_STATIC=yes \
     && make -j `nproc` && $STRIP src/$ARIA2_BIN
 
