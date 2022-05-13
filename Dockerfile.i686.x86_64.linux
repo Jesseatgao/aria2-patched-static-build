@@ -36,7 +36,8 @@ ENV LIBTASN1_VER=4.18.0
 ENV GNUTLS_VER=3.6.16
 ENV ARIA2_VER=1.35.0
 
-ENV TRUST_STORE_DIR=/etc/ssl/certs
+ENV OPENSSL_DIR=/etc/ssl
+ENV TRUST_STORE_DIR=$OPENSSL_DIR/certs
 
 # implicitly created $SRC
 ADD aria2-1.35.0.conf.patch $SRC
@@ -134,7 +135,7 @@ RUN mkdir -p $PREFIX $PKG_CONFIG_PATH \
     && make -j `nproc` && make install \
 \
     && cd $SRC/openssl-$OPENSSL_VER/ \
-    && ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX --openssldir=/etc/ssl no-shared no-tests \
+    && ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX --openssldir=$OPENSSL_DIR no-shared no-tests \
     && make -j `nproc` && make install \
 \
     && cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
@@ -221,7 +222,7 @@ RUN	mkdir -p $PREFIX $PKG_CONFIG_PATH \
     && make -j `nproc` && make install \
 \
     && cd $SRC/openssl-$OPENSSL_VER/ \
-    && ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX --openssldir=/etc/ssl no-shared no-tests \
+    && ./Configure $([[ "$HOST" =~ "mingw32" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "mingw64" || echo "mingw") || ([[ "$HOST" =~ "linux" ]] && ([[ "$HOST" =~ "x86_64" ]] && echo "linux-x86_64" || echo "linux-x86"))) --cross-compile-prefix= --prefix=$PREFIX --openssldir=$OPENSSL_DIR no-shared no-tests \
     && make -j `nproc` && make install \
 \
     && cd $SRC/sqlite-autoconf-$SQLITE_VER/ \
