@@ -28,30 +28,14 @@ jobs:
         run: |
           docker rm ${{steps.ccont.outputs.id}}
           docker image rm aria2_mingw
-      - name: Build upload url i686
-        id: bldurl-i686
-        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-win.zip" >> "$GITHUB_OUTPUT"
-      - name: Upload release asset i686
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release asset i686 & x86_64
+        uses: svenstaro/upload-release-action@v2
         with:
-          upload_url: ${{ steps.bldurl-i686.outputs.url }}
-          asset_path: aria2/aria2-i686-win.zip
-          asset_name: aria2-i686-win.zip
-          asset_content_type: application/zip
-      - name: Build upload url x86_64
-        id: bldurl-x86_64
-        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-win.zip" >> "$GITHUB_OUTPUT"
-      - name: Upload release asset x86_64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.bldurl-x86_64.outputs.url }}
-          asset_path: aria2/aria2-x86_64-win.zip
-          asset_name: aria2-x86_64-win.zip
-          asset_content_type: application/zip
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: aria2/aria2-*.zip
+          overwrite: true
+          file_glob: true
   build-aria2-linux:
     runs-on: ubuntu-latest
     steps:
@@ -74,27 +58,11 @@ jobs:
         run: |
           docker rm ${{steps.ccont.outputs.id}}
           docker image rm aria2_linux
-      - name: Build upload url i686
-        id: bldurl-i686
-        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-linux.tar.xz" >> "$GITHUB_OUTPUT"
-      - name: Upload release asset i686
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release asset i686 & x86_64
+        uses: svenstaro/upload-release-action@v2
         with:
-          upload_url: ${{ steps.bldurl-i686.outputs.url }}
-          asset_path: aria2/aria2-i686-linux.tar.xz
-          asset_name: aria2-i686-linux.tar.xz
-          asset_content_type: application/x-gtar
-      - name: Build upload url x86_64
-        id: bldurl-x86_64
-        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-linux.tar.xz" >> "$GITHUB_OUTPUT"
-      - name: Upload release asset x86_64
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.bldurl-x86_64.outputs.url }}
-          asset_path: aria2/aria2-x86_64-linux.tar.xz
-          asset_name: aria2-x86_64-linux.tar.xz
-          asset_content_type: application/x-gtar
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: aria2/aria2-*.tar.xz
+          overwrite: true
+          file_glob: true
