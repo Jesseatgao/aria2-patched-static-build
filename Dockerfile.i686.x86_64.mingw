@@ -1,7 +1,7 @@
 # `aria2c`, `aria2c.exe` for Linux and Windows respectively
 ARG ARIA2_BIN=aria2c.exe
 
-ARG MINGW_W64_IMG=cgdoc/mingw-w64-multilib:win32-v1.2
+ARG MINGW_W64_IMG=cgdoc/mingw-w64-multilib:win32-v1.5
 
 ###################Stage 0: ######################
 FROM $MINGW_W64_IMG AS builder
@@ -11,15 +11,15 @@ FROM $MINGW_W64_IMG AS builder
 ENV MINGW32=x86_64-w64-mingw32-
 #ENV MINGW32=
 
-ENV CC ${MINGW32}gcc
-ENV CXX ${MINGW32}g++
-ENV AR ${MINGW32}ar
-ENV RANLIB ${MINGW32}ranlib
-ENV STRIP ${MINGW32}strip
-ENV LD ${MINGW32}ld
-ENV OBJDUMP ${MINGW32}objdump
-ENV AS ${MINGW32}as
-ENV NM ${MINGW32}nm
+ENV CC=${MINGW32}gcc
+ENV CXX=${MINGW32}g++
+ENV AR=${MINGW32}ar
+ENV RANLIB=${MINGW32}ranlib
+ENV STRIP=${MINGW32}strip
+ENV LD=${MINGW32}ld
+ENV OBJDUMP=${MINGW32}objdump
+ENV AS=${MINGW32}as
+ENV NM=${MINGW32}nm
 
 
 ENV SRC=/opt/_src/
@@ -99,9 +99,9 @@ ARG LDFLAGS="-m32 -march=i686 -fstack-protector-strong -fpie -Wl,-pie -Wl,--dyna
 ARG WINDRES_FLAGS="-F pe-i386"
 ARG DLLTOOL_FLAGS="-m i386"
 
-ENV WINDRES "${MINGW32}windres ${WINDRES_FLAGS}"
-ENV RC $WINDRES
-ENV DLLTOOL "${MINGW32}dlltool ${DLLTOOL_FLAGS}"
+ENV WINDRES="${MINGW32}windres ${WINDRES_FLAGS}"
+ENV RC=$WINDRES
+ENV DLLTOOL="${MINGW32}dlltool ${DLLTOOL_FLAGS}"
 
 
 #ARG BUILDROOT=/opt/mingw32/_buildroot
@@ -173,9 +173,9 @@ ARG LDFLAGS="-m64 -fstack-protector-strong -fpie -Wl,-pie -Wl,--dynamicbase -Wl,
 ARG WINDRES_FLAGS="-F pe-x86-64"
 ARG DLLTOOL_FLAGS="-m i386:x86-64"
 
-ENV WINDRES "${MINGW32}windres ${WINDRES_FLAGS}"
-ENV RC $WINDRES
-ENV DLLTOOL "${MINGW32}dlltool ${DLLTOOL_FLAGS}"
+ENV WINDRES="${MINGW32}windres ${WINDRES_FLAGS}"
+ENV RC=$WINDRES
+ENV DLLTOOL="${MINGW32}dlltool ${DLLTOOL_FLAGS}"
 
 
 #ARG BUILDROOT=/opt/mingw32/_buildroot

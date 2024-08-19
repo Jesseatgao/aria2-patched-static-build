@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Build aria2 Docker image
         run: docker build -t aria2_mingw -f Dockerfile.i686.x86_64.mingw .
       - name: Create a container
         id: ccont
-        run: echo ::set-output name=id::$(docker create aria2_mingw /bin/bash)
+        run: echo "id=$(docker create aria2_mingw /bin/bash)" >> "$GITHUB_OUTPUT"
       - name: Copy built aria2 - aria2c.exe
         run: |
           mkdir -p aria2/i686 aria2/x86_64
@@ -30,7 +30,7 @@ jobs:
           docker image rm aria2_mingw
       - name: Build upload url i686
         id: bldurl-i686
-        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-win.zip
+        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-win.zip" >> "$GITHUB_OUTPUT"
       - name: Upload release asset i686
         uses: actions/upload-release-asset@v1
         env:
@@ -42,7 +42,7 @@ jobs:
           asset_content_type: application/zip
       - name: Build upload url x86_64
         id: bldurl-x86_64
-        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-win.zip
+        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-win.zip" >> "$GITHUB_OUTPUT"
       - name: Upload release asset x86_64
         uses: actions/upload-release-asset@v1
         env:
@@ -56,12 +56,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Build aria2 Docker image
         run: docker build -t aria2_linux -f Dockerfile.i686.x86_64.linux .
       - name: Create a container
         id: ccont
-        run: echo ::set-output name=id::$(docker create aria2_linux /bin/bash)
+        run: echo "id=$(docker create aria2_linux /bin/bash)" >> "$GITHUB_OUTPUT"
       - name: Copy built aria2 - aria2c
         run: |
           mkdir -p aria2/i686 aria2/x86_64
@@ -76,7 +76,7 @@ jobs:
           docker image rm aria2_linux
       - name: Build upload url i686
         id: bldurl-i686
-        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-linux.tar.xz
+        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-i686-linux.tar.xz" >> "$GITHUB_OUTPUT"
       - name: Upload release asset i686
         uses: actions/upload-release-asset@v1
         env:
@@ -88,7 +88,7 @@ jobs:
           asset_content_type: application/x-gtar
       - name: Build upload url x86_64
         id: bldurl-x86_64
-        run: echo ::set-output name=url::https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-linux.tar.xz
+        run: echo "url=https://uploads.github.com/repos/${GITHUB_REPOSITORY}/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets?name=aria2-x86_64-linux.tar.xz" >> "$GITHUB_OUTPUT"
       - name: Upload release asset x86_64
         uses: actions/upload-release-asset@v1
         env:
