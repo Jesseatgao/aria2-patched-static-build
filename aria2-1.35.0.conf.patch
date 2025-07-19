@@ -1,7 +1,8 @@
-diff -ruN aria2-master/src/DownloadCommand.cc aria2-master/src/DownloadCommand.cc
---- aria2-master/src/DownloadCommand.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/DownloadCommand.cc	2019-10-10 21:07:40.000000000 +0000
-@@ -306,7 +306,7 @@
+diff --git a/src/DownloadCommand.cc b/src/DownloadCommand.cc
+index 2db41e4..07267f5 100644
+--- a/src/DownloadCommand.cc
++++ b/src/DownloadCommand.cc
+@@ -306,7 +306,7 @@ void DownloadCommand::checkLowestDownloadSpeed() const
            startupIdleTime_) {
      int nowSpeed = peerStat_->calculateDownloadSpeed();
      if (nowSpeed <= lowestDownloadSpeedLimit_) {
@@ -10,10 +11,162 @@ diff -ruN aria2-master/src/DownloadCommand.cc aria2-master/src/DownloadCommand.c
                               lowestDownloadSpeedLimit_,
                               getRequest()->getHost().c_str()),
                           error_code::TOO_SLOW_DOWNLOAD_SPEED);
-diff -ruN aria2-master/src/HttpSkipResponseCommand.cc aria2-master/src/HttpSkipResponseCommand.cc
---- aria2-master/src/HttpSkipResponseCommand.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/HttpSkipResponseCommand.cc	2019-10-10 21:36:40.000000000 +0000
-@@ -204,7 +204,7 @@
+diff --git a/src/HttpResponse.cc b/src/HttpResponse.cc
+index 500cd64..8ea4d94 100644
+--- a/src/HttpResponse.cc
++++ b/src/HttpResponse.cc
+@@ -68,7 +68,7 @@ namespace aria2 {
+ 
+ HttpResponse::HttpResponse() : cuid_{0} {}
+ 
+-void HttpResponse::validateResponse() const
++int HttpResponse::validateResponse() const
+ {
+   int statusCode = getStatusCode();
+   switch (statusCode) {
+@@ -78,21 +78,23 @@ void HttpResponse::validateResponse() const
+       // compare the received range against the requested range
+       auto responseRange = httpHeader_->getRange();
+       if (!httpRequest_->isRangeSatisfied(responseRange)) {
+-        throw DL_ABORT_EX2(
+-            fmt(EX_INVALID_RANGE_HEADER, httpRequest_->getStartByte(),
+-                httpRequest_->getEndByte(), httpRequest_->getEntityLength(),
+-                responseRange.startByte, responseRange.endByte,
+-                responseRange.entityLength),
+-            error_code::CANNOT_RESUME);
++        return -1;
++        
++        // throw DL_ABORT_EX2(
++        //     fmt(EX_INVALID_RANGE_HEADER, httpRequest_->getStartByte(),
++        //         httpRequest_->getEndByte(), httpRequest_->getEntityLength(),
++        //         responseRange.startByte, responseRange.endByte,
++        //         responseRange.entityLength),
++        //     error_code::CANNOT_RESUME);
+       }
+     }
+-    return;
++    return 0;
+   case 304: // Not Modified
+     if (!httpRequest_->conditionalRequest()) {
+       throw DL_ABORT_EX2("Got 304 without If-Modified-Since or If-None-Match",
+                          error_code::HTTP_PROTOCOL_ERROR);
+     }
+-    return;
++    return 0;
+   case 300: // Multiple Choices
+   case 301: // Moved Permanently
+   case 302: // Found
+@@ -103,13 +105,16 @@ void HttpResponse::validateResponse() const
+       throw DL_ABORT_EX2(fmt(EX_LOCATION_HEADER_REQUIRED, statusCode),
+                          error_code::HTTP_PROTOCOL_ERROR);
+     }
+-    return;
++    return 0;
+   }
+   if (statusCode >= 400) {
+-    return;
++    return 0;
+   }
+-  throw DL_ABORT_EX2(fmt("Unexpected status %d", statusCode),
+-                     error_code::HTTP_PROTOCOL_ERROR);
++
++  return statusCode;
++
++  // throw DL_ABORT_EX2(fmt("Unexpected status %d", statusCode),
++  //                    error_code::HTTP_PROTOCOL_ERROR);
+ }
+ 
+ std::string HttpResponse::determineFilename(bool contentDispositionUTF8) const
+diff --git a/src/HttpResponse.h b/src/HttpResponse.h
+index 2caffaf..6480ca4 100644
+--- a/src/HttpResponse.h
++++ b/src/HttpResponse.h
+@@ -62,7 +62,7 @@ private:
+ public:
+   HttpResponse();
+ 
+-  void validateResponse() const;
++  int validateResponse() const;
+ 
+   /**
+    * Returns filename.
+diff --git a/src/HttpResponseCommand.cc b/src/HttpResponseCommand.cc
+index 6e2a01d..a7355a1 100644
+--- a/src/HttpResponseCommand.cc
++++ b/src/HttpResponseCommand.cc
+@@ -51,16 +51,19 @@
+ #include "DefaultBtProgressInfoFile.h"
+ #include "DownloadFailureException.h"
+ #include "DlAbortEx.h"
++#include "DlRetryEx.h"
+ #include "util.h"
+ #include "File.h"
+ #include "Option.h"
+ #include "Logger.h"
+ #include "SocketCore.h"
+ #include "message.h"
++#include "error_code.h"
+ #include "prefs.h"
+ #include "fmt.h"
+ #include "HttpSkipResponseCommand.h"
+ #include "HttpHeader.h"
++#include "Range.h"
+ #include "LogFactory.h"
+ #include "CookieStorage.h"
+ #include "AuthConfigFactory.h"
+@@ -154,7 +157,46 @@ bool HttpResponseCommand::executeInternal()
+   }
+ 
+   // check HTTP status code
+-  httpResponse->validateResponse();
++  int r = httpResponse->validateResponse();
++  switch(r){
++    case 0:
++      break;
++    case -1: {
++      // 200 OK or 206 Partial Content: range not satisified
++      auto reqStartByte = httpResponse->getHttpRequest()->getStartByte();
++      auto reqEndByte = httpResponse->getHttpRequest()->getEndByte();
++      auto reqEntityLength = httpResponse->getHttpRequest()->getEntityLength();
++      auto responseRange = httpResponse->getHttpHeader()->getRange();
++      
++      if (getOption()->getAsBool(PREF_RETRY_ON_NOT_SATISFIED_206)
++          && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
++          throw DL_RETRY_EX2(
++              fmt(EX_INVALID_RANGE_HEADER, reqStartByte,
++                  reqEndByte, reqEntityLength,
++                  responseRange.startByte, responseRange.endByte,
++                  responseRange.entityLength),
++              error_code::CANNOT_RESUME);
++      }
++      throw DL_ABORT_EX2(
++              fmt(EX_INVALID_RANGE_HEADER, reqStartByte,
++                  reqEndByte, reqEntityLength,
++                  responseRange.startByte, responseRange.endByte,
++                  responseRange.entityLength),
++              error_code::CANNOT_RESUME);
++      break;
++    }
++    default: {
++      // Unexpected status code
++      if (getOption()->getAsBool(PREF_RETRY_ON_UNKNOWN)
++          && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
++          throw DL_RETRY_EX2(fmt("Unexpected status %d", r),
++                            error_code::HTTP_PROTOCOL_ERROR);
++      }
++      throw DL_ABORT_EX2(fmt("Unexpected status %d", r),
++                          error_code::HTTP_PROTOCOL_ERROR);
++    }
++  }
++
+   httpResponse->retrieveCookie();
+ 
+   const auto& httpHeader = httpResponse->getHttpHeader();
+diff --git a/src/HttpSkipResponseCommand.cc b/src/HttpSkipResponseCommand.cc
+index a722d77..8fc5fb2 100644
+--- a/src/HttpSkipResponseCommand.cc
++++ b/src/HttpSkipResponseCommand.cc
+@@ -204,7 +204,7 @@ bool HttpSkipResponseCommand::processResponse()
    auto statusCode = httpResponse_->getStatusCode();
    if (statusCode >= 400) {
      switch (statusCode) {
@@ -22,7 +175,7 @@ diff -ruN aria2-master/src/HttpSkipResponseCommand.cc aria2-master/src/HttpSkipR
        if (getOption()->getAsBool(PREF_HTTP_AUTH_CHALLENGE) &&
            !httpResponse_->getHttpRequest()->authenticationUsed() &&
            getDownloadEngine()->getAuthConfigFactory()->activateBasicCred(
-@@ -213,15 +213,41 @@
+@@ -213,15 +213,41 @@ bool HttpSkipResponseCommand::processResponse()
          return prepareForRetry(0);
        }
        throw DL_ABORT_EX2(EX_AUTH_FAILED, error_code::HTTP_AUTH_FAILED);
@@ -67,7 +220,7 @@ diff -ruN aria2-master/src/HttpSkipResponseCommand.cc aria2-master/src/HttpSkipR
        // Only retry if pretry-wait > 0. Hammering 'busy' server is not
        // a good idea.
        if (getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
-@@ -230,12 +256,16 @@
+@@ -230,12 +256,16 @@ bool HttpSkipResponseCommand::processResponse()
        }
        throw DL_ABORT_EX2(fmt(EX_BAD_STATUS, statusCode),
                           error_code::HTTP_SERVICE_UNAVAILABLE);
@@ -86,10 +239,11 @@ diff -ruN aria2-master/src/HttpSkipResponseCommand.cc aria2-master/src/HttpSkipR
      throw DL_ABORT_EX2(fmt(EX_BAD_STATUS, statusCode),
                         error_code::HTTP_PROTOCOL_ERROR);
    }
-diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandlerFactory.cc
---- aria2-master/src/OptionHandlerFactory.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/OptionHandlerFactory.cc	2019-10-10 21:49:58.000000000 +0000
-@@ -158,7 +158,7 @@
+diff --git a/src/OptionHandlerFactory.cc b/src/OptionHandlerFactory.cc
+index 6bff4ca..1cfe549 100644
+--- a/src/OptionHandlerFactory.cc
++++ b/src/OptionHandlerFactory.cc
+@@ -158,7 +158,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new BooleanOptionHandler(
@@ -98,7 +252,7 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_BASIC);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -432,7 +432,7 @@
+@@ -432,7 +432,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    {
      OptionHandler* op(new NumberOptionHandler(PREF_MAX_CONCURRENT_DOWNLOADS,
                                                TEXT_MAX_CONCURRENT_DOWNLOADS,
@@ -107,7 +261,7 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_BASIC);
      op->setChangeGlobalOption(true);
      handlers.push_back(op);
-@@ -440,7 +440,7 @@
+@@ -440,7 +440,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    {
      OptionHandler* op(new NumberOptionHandler(PREF_MAX_CONNECTION_PER_SERVER,
                                                TEXT_MAX_CONNECTION_PER_SERVER,
@@ -116,7 +270,7 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_BASIC);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -501,7 +501,7 @@
+@@ -501,7 +501,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new UnitNumberOptionHandler(
@@ -125,7 +279,7 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_BASIC);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -834,7 +834,7 @@
+@@ -834,7 +834,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new NumberOptionHandler(
@@ -134,7 +288,7 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
      op->setInitialOption(true);
-@@ -905,7 +905,7 @@
+@@ -905,7 +905,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new UnitNumberOptionHandler(
@@ -143,63 +297,75 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_ADVANCED);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -926,7 +926,7 @@
+@@ -925,8 +925,8 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
+     handlers.push_back(op);
    }
    {
-     OptionHandler* op(
+-    OptionHandler* op(
 -        new NumberOptionHandler(PREF_RETRY_WAIT, TEXT_RETRY_WAIT, "0", 0, 600));
-+            new NumberOptionHandler(PREF_RETRY_WAIT, TEXT_RETRY_WAIT, "1", 0, 600));
++    OptionHandler* op(new NumberOptionHandler(
++          PREF_RETRY_WAIT, TEXT_RETRY_WAIT, "1", 0, 600));
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
      op->setInitialOption(true);
-@@ -934,6 +934,46 @@
+@@ -934,6 +934,56 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
      op->setChangeOptionForReserved(true);
      handlers.push_back(op);
    }
-+    {
-+        OptionHandler* op(new BooleanOptionHandler(
-+                PREF_RETRY_ON_400, TEXT_RETRY_ON_400, A2_V_FALSE, OptionHandler::OPT_ARG));
-+        op->addTag(TAG_ADVANCED);
-+        op->addTag(TAG_HTTP);
-+        op->setInitialOption(true);
-+        op->setChangeGlobalOption(true);
-+        op->setChangeOptionForReserved(true);
-+        handlers.push_back(op);
-+    }
-+    {
-+        OptionHandler* op(new BooleanOptionHandler(
-+                PREF_RETRY_ON_403, TEXT_RETRY_ON_403, A2_V_FALSE, OptionHandler::OPT_ARG));
-+        op->addTag(TAG_ADVANCED);
-+        op->addTag(TAG_HTTP);
-+        op->setInitialOption(true);
-+        op->setChangeGlobalOption(true);
-+        op->setChangeOptionForReserved(true);
-+        handlers.push_back(op);
-+    }
-+    {
-+        OptionHandler* op(new BooleanOptionHandler(
-+                PREF_RETRY_ON_406, TEXT_RETRY_ON_406, A2_V_FALSE, OptionHandler::OPT_ARG));
-+        op->addTag(TAG_ADVANCED);
-+        op->addTag(TAG_HTTP);
-+        op->setInitialOption(true);
-+        op->setChangeGlobalOption(true);
-+        op->setChangeOptionForReserved(true);
-+        handlers.push_back(op);
-+    }
-+    {
-+        OptionHandler* op(new BooleanOptionHandler(
-+                PREF_RETRY_ON_UNKNOWN, TEXT_RETRY_ON_UNKNOWN, A2_V_FALSE, OptionHandler::OPT_ARG));
-+        op->addTag(TAG_ADVANCED);
-+        op->addTag(TAG_HTTP);
-+        op->setInitialOption(true);
-+        op->setChangeGlobalOption(true);
-+        op->setChangeOptionForReserved(true);
-+        handlers.push_back(op);
-+    }
++  {
++      OptionHandler* op(new BooleanOptionHandler(
++              PREF_RETRY_ON_NOT_SATISFIED_206, TEXT_RETRY_ON_NOT_SATISFIED_206, A2_V_FALSE, OptionHandler::OPT_ARG));
++      op->addTag(TAG_ADVANCED);
++      op->addTag(TAG_HTTP);
++      op->setInitialOption(true);
++      op->setChangeGlobalOption(true);
++      op->setChangeOptionForReserved(true);
++      handlers.push_back(op);
++  }
++  {
++      OptionHandler* op(new BooleanOptionHandler(
++              PREF_RETRY_ON_400, TEXT_RETRY_ON_400, A2_V_FALSE, OptionHandler::OPT_ARG));
++      op->addTag(TAG_ADVANCED);
++      op->addTag(TAG_HTTP);
++      op->setInitialOption(true);
++      op->setChangeGlobalOption(true);
++      op->setChangeOptionForReserved(true);
++      handlers.push_back(op);
++  }
++  {
++      OptionHandler* op(new BooleanOptionHandler(
++              PREF_RETRY_ON_403, TEXT_RETRY_ON_403, A2_V_FALSE, OptionHandler::OPT_ARG));
++      op->addTag(TAG_ADVANCED);
++      op->addTag(TAG_HTTP);
++      op->setInitialOption(true);
++      op->setChangeGlobalOption(true);
++      op->setChangeOptionForReserved(true);
++      handlers.push_back(op);
++  }
++  {
++      OptionHandler* op(new BooleanOptionHandler(
++              PREF_RETRY_ON_406, TEXT_RETRY_ON_406, A2_V_FALSE, OptionHandler::OPT_ARG));
++      op->addTag(TAG_ADVANCED);
++      op->addTag(TAG_HTTP);
++      op->setInitialOption(true);
++      op->setChangeGlobalOption(true);
++      op->setChangeOptionForReserved(true);
++      handlers.push_back(op);
++  }
++  {
++      OptionHandler* op(new BooleanOptionHandler(
++              PREF_RETRY_ON_UNKNOWN, TEXT_RETRY_ON_UNKNOWN, A2_V_FALSE, OptionHandler::OPT_ARG));
++      op->addTag(TAG_ADVANCED);
++      op->addTag(TAG_HTTP);
++      op->setInitialOption(true);
++      op->setChangeGlobalOption(true);
++      op->setChangeOptionForReserved(true);
++      handlers.push_back(op);
++  }
    {
      OptionHandler* op(new BooleanOptionHandler(
          PREF_REUSE_URI, TEXT_REUSE_URI, A2_V_TRUE, OptionHandler::OPT_ARG));
-@@ -971,7 +1011,7 @@
+@@ -971,7 +1021,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(
@@ -208,7 +374,7 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
      op->addTag(TAG_BASIC);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -1276,7 +1316,7 @@
+@@ -1276,7 +1326,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new LocalFilePathOptionHandler(
@@ -217,10 +383,11 @@ diff -ruN aria2-master/src/OptionHandlerFactory.cc aria2-master/src/OptionHandle
          /* acceptStdin = */ false, 0, /* mustExist = */ false));
      handlers.push_back(op);
    }
-diff -ruN aria2-master/src/OptionHandlerImpl.cc aria2-master/src/OptionHandlerImpl.cc
---- aria2-master/src/OptionHandlerImpl.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/OptionHandlerImpl.cc	2019-10-10 17:10:30.000000000 +0000
-@@ -548,7 +548,7 @@
+diff --git a/src/OptionHandlerImpl.cc b/src/OptionHandlerImpl.cc
+index 6214e84..f64b47e 100644
+--- a/src/OptionHandlerImpl.cc
++++ b/src/OptionHandlerImpl.cc
+@@ -548,7 +548,7 @@ void LocalFilePathOptionHandler::parseArg(Option& option,
      option.put(pref_, DEV_STDIN);
    }
    else {
@@ -229,9 +396,10 @@ diff -ruN aria2-master/src/OptionHandlerImpl.cc aria2-master/src/OptionHandlerIm
      if (mustExist_) {
        File f(path);
        std::string err;
-diff -ruN aria2-master/src/SocketBuffer.cc aria2-master/src/SocketBuffer.cc
---- aria2-master/src/SocketBuffer.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/SocketBuffer.cc	2019-10-11 01:00:46.000000000 +0000
+diff --git a/src/SocketBuffer.cc b/src/SocketBuffer.cc
+index 62862ff..eed3c33 100644
+--- a/src/SocketBuffer.cc
++++ b/src/SocketBuffer.cc
 @@ -39,6 +39,7 @@
  
  #include "SocketCore.h"
@@ -240,7 +408,7 @@ diff -ruN aria2-master/src/SocketBuffer.cc aria2-master/src/SocketBuffer.cc
  #include "message.h"
  #include "fmt.h"
  #include "LogFactory.h"
-@@ -158,7 +159,7 @@
+@@ -158,7 +159,7 @@ ssize_t SocketBuffer::send()
      }
      ssize_t slen = socket_->writeVector(iov, num);
      if (slen == 0 && !socket_->wantRead() && !socket_->wantWrite()) {
@@ -249,10 +417,11 @@ diff -ruN aria2-master/src/SocketBuffer.cc aria2-master/src/SocketBuffer.cc
      }
      // A2_LOG_NOTICE(fmt("num=%zu, amount=%d, bufq.size()=%zu, SEND=%d",
      //                   num, amount, bufq_.size(), slen));
-diff -ruN aria2-master/src/SocketCore.cc aria2-master/src/SocketCore.cc
---- aria2-master/src/SocketCore.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/SocketCore.cc	2019-10-10 21:09:36.000000000 +0000
-@@ -1015,7 +1015,7 @@
+diff --git a/src/SocketCore.cc b/src/SocketCore.cc
+index e235f51..ab42ba7 100644
+--- a/src/SocketCore.cc
++++ b/src/SocketCore.cc
+@@ -1015,7 +1015,7 @@ bool SocketCore::tlsHandshake(TLSContext* tlsctx, const std::string& hostname)
  
      if (rv == TLS_ERR_ERROR) {
        // Damn those error.
@@ -261,10 +430,11 @@ diff -ruN aria2-master/src/SocketCore.cc aria2-master/src/SocketCore.cc
                              handshakeError.empty()
                                  ? tlsSession_->getLastErrorString().c_str()
                                  : handshakeError.c_str()));
-diff -ruN aria2-master/src/option_processing.cc aria2-master/src/option_processing.cc
---- aria2-master/src/option_processing.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/option_processing.cc	2019-10-10 21:16:46.000000000 +0000
-@@ -319,6 +319,22 @@
+diff --git a/src/option_processing.cc b/src/option_processing.cc
+index f9891fe..728ae07 100644
+--- a/src/option_processing.cc
++++ b/src/option_processing.cc
+@@ -319,6 +319,22 @@ error_code::Value option_processing(Option& op, bool standalone,
      }
    }
    if (standalone && op.getAsBool(PREF_DAEMON)) {
@@ -287,7 +457,7 @@ diff -ruN aria2-master/src/option_processing.cc aria2-master/src/option_processi
  #if defined(__GNUC__) && defined(__APPLE__)
  // daemon() is deprecated on OSX since... forever.
  // Silence the warning for good, so that -Werror becomes feasible.
-@@ -334,6 +350,7 @@
+@@ -334,6 +350,7 @@ error_code::Value option_processing(Option& op, bool standalone,
        perror(MSG_DAEMON_FAILED);
        return error_code::UNKNOWN_ERROR;
      }
@@ -295,13 +465,16 @@ diff -ruN aria2-master/src/option_processing.cc aria2-master/src/option_processi
    }
    if (op.getAsBool(PREF_DEFERRED_INPUT) && op.defined(PREF_SAVE_SESSION)) {
      A2_LOG_WARN("--deferred-input is disabled because of the presence of "
-diff -ruN aria2-master/src/prefs.cc aria2-master/src/prefs.cc
---- aria2-master/src/prefs.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/prefs.cc	2019-10-10 21:54:40.000000000 +0000
-@@ -326,6 +326,14 @@
+diff --git a/src/prefs.cc b/src/prefs.cc
+index fe98268..12ad52f 100644
+--- a/src/prefs.cc
++++ b/src/prefs.cc
+@@ -326,6 +326,16 @@ PrefPtr PREF_ENABLE_ASYNC_DNS6 = makePref("enable-async-dns6");
  PrefPtr PREF_MAX_DOWNLOAD_RESULT = makePref("max-download-result");
  // value: 1*digit
  PrefPtr PREF_RETRY_WAIT = makePref("retry-wait");
++// value: true | false
++PrefPtr PREF_RETRY_ON_NOT_SATISFIED_206 = makePref("retry-on-not-satisfied-206");
 +// value: true | false
 +PrefPtr PREF_RETRY_ON_400 = makePref("retry-on-400");
 +// value: true | false
@@ -313,13 +486,16 @@ diff -ruN aria2-master/src/prefs.cc aria2-master/src/prefs.cc
  // value: string
  PrefPtr PREF_ASYNC_DNS_SERVER = makePref("async-dns-server");
  // value: true | false
-diff -ruN aria2-master/src/prefs.h aria2-master/src/prefs.h
---- aria2-master/src/prefs.h	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/prefs.h	2019-10-10 21:55:58.000000000 +0000
-@@ -279,6 +279,14 @@
+diff --git a/src/prefs.h b/src/prefs.h
+index 9719b3b..a88c14b 100644
+--- a/src/prefs.h
++++ b/src/prefs.h
+@@ -279,6 +279,16 @@ extern PrefPtr PREF_ENABLE_ASYNC_DNS6;
  extern PrefPtr PREF_MAX_DOWNLOAD_RESULT;
  // value: 1*digit
  extern PrefPtr PREF_RETRY_WAIT;
++// value: true | false
++extern PrefPtr PREF_RETRY_ON_NOT_SATISFIED_206;
 +// value: true | false
 +extern PrefPtr PREF_RETRY_ON_400;
 +// value: true | false
@@ -331,13 +507,19 @@ diff -ruN aria2-master/src/prefs.h aria2-master/src/prefs.h
  // value: string
  extern PrefPtr PREF_ASYNC_DNS_SERVER;
  // value: true | false
-diff -ruN aria2-master/src/usage_text.h aria2-master/src/usage_text.h
---- aria2-master/src/usage_text.h	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/usage_text.h	2019-10-10 21:58:04.000000000 +0000
-@@ -64,6 +64,22 @@
+diff --git a/src/usage_text.h b/src/usage_text.h
+index ebf67e3..179a990 100644
+--- a/src/usage_text.h
++++ b/src/usage_text.h
+@@ -64,6 +64,27 @@
    _(" --retry-wait=SEC             Set the seconds to wait between retries. \n" \
      "                              With SEC > 0, aria2 will retry download when the\n" \
      "                              HTTP server returns 503 response.")
++#define TEXT_RETRY_ON_NOT_SATISFIED_206                                     \
++  _(" --retry-on-not-satisfied-206[=true|false]  Configure whether retry or not when\n" \
++    "                              HTTP server returns unsatisfied 206 partial content or\n" \
++    "                              200 OK for a (range) request.\n"        \
++    "                              Only effective if retry-wait > 0.")
 +#define TEXT_RETRY_ON_400                                                 \
 +  _(" --retry-on-400[=true|false]  Configure whether retry or not when\n" \
 +    "                              HTTP server returns 400 Bad Request.\n" \
@@ -357,10 +539,11 @@ diff -ruN aria2-master/src/usage_text.h aria2-master/src/usage_text.h
  #define TEXT_TIMEOUT                                            \
    _(" -t, --timeout=SEC            Set timeout in seconds.")
  #define TEXT_MAX_TRIES                                                  \
-diff -ruN aria2-master/src/util.cc aria2-master/src/util.cc
---- aria2-master/src/util.cc	2019-10-06 11:36:08.000000000 +0000
-+++ aria2-master/src/util.cc	2019-10-10 17:15:38.000000000 +0000
-@@ -1805,9 +1805,12 @@
+diff --git a/src/util.cc b/src/util.cc
+index 07502c0..e6da18f 100644
+--- a/src/util.cc
++++ b/src/util.cc
+@@ -1805,9 +1805,12 @@ std::string getXDGDir(const std::string& environmentVariable,
  
  std::string getConfigFile()
  {
@@ -375,7 +558,7 @@ diff -ruN aria2-master/src/util.cc aria2-master/src/util.cc
                 "/aria2/aria2.conf";
    }
    return filename;
-@@ -1816,9 +1819,12 @@
+@@ -1816,9 +1819,12 @@ std::string getConfigFile()
  std::string getDHTFile(bool ipv6)
  {
    std::string filename =
