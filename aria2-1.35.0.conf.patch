@@ -1,18 +1,27 @@
 diff --git a/src/DownloadCommand.cc b/src/DownloadCommand.cc
-index 2db41e4..07267f5 100644
+index 2db41e4..129005a 100644
 --- a/src/DownloadCommand.cc
 +++ b/src/DownloadCommand.cc
-@@ -306,7 +306,7 @@ void DownloadCommand::checkLowestDownloadSpeed() const
+@@ -306,10 +306,16 @@ void DownloadCommand::checkLowestDownloadSpeed() const
            startupIdleTime_) {
      int nowSpeed = peerStat_->calculateDownloadSpeed();
      if (nowSpeed <= lowestDownloadSpeedLimit_) {
 -      throw DL_ABORT_EX2(fmt(EX_TOO_SLOW_DOWNLOAD_SPEED, nowSpeed,
++      if (getOption()->getAsBool(PREF_RETRY_ON_LOWEST_SPEED)){
 +        throw DL_RETRY_EX2(fmt(EX_TOO_SLOW_DOWNLOAD_SPEED, nowSpeed,
                               lowestDownloadSpeedLimit_,
                               getRequest()->getHost().c_str()),
                           error_code::TOO_SLOW_DOWNLOAD_SPEED);
++      }
++      throw DL_ABORT_EX2(fmt(EX_TOO_SLOW_DOWNLOAD_SPEED, nowSpeed,
++                            lowestDownloadSpeedLimit_,
++                            getRequest()->getHost().c_str()),
++                        error_code::TOO_SLOW_DOWNLOAD_SPEED);
+     }
+   }
+ }
 diff --git a/src/HttpResponse.cc b/src/HttpResponse.cc
-index 500cd64..8ea4d94 100644
+index 500cd64..b38311c 100644
 --- a/src/HttpResponse.cc
 +++ b/src/HttpResponse.cc
 @@ -68,7 +68,7 @@ namespace aria2 {
@@ -35,7 +44,7 @@ index 500cd64..8ea4d94 100644
 -                responseRange.entityLength),
 -            error_code::CANNOT_RESUME);
 +        return -1;
-+        
++
 +        // throw DL_ABORT_EX2(
 +        //     fmt(EX_INVALID_RANGE_HEADER, httpRequest_->getStartByte(),
 +        //         httpRequest_->getEndByte(), httpRequest_->getEntityLength(),
@@ -91,7 +100,7 @@ index 2caffaf..6480ca4 100644
    /**
     * Returns filename.
 diff --git a/src/HttpResponseCommand.cc b/src/HttpResponseCommand.cc
-index 6e2a01d..a7355a1 100644
+index 6e2a01d..c24f8a6 100644
 --- a/src/HttpResponseCommand.cc
 +++ b/src/HttpResponseCommand.cc
 @@ -51,16 +51,19 @@
@@ -129,7 +138,7 @@ index 6e2a01d..a7355a1 100644
 +      auto reqEndByte = httpResponse->getHttpRequest()->getEndByte();
 +      auto reqEntityLength = httpResponse->getHttpRequest()->getEntityLength();
 +      auto responseRange = httpResponse->getHttpHeader()->getRange();
-+      
++
 +      if (getOption()->getAsBool(PREF_RETRY_ON_NOT_SATISFIED_206)
 +          && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +          throw DL_RETRY_EX2(
@@ -137,7 +146,7 @@ index 6e2a01d..a7355a1 100644
 +                  reqEndByte, reqEntityLength,
 +                  responseRange.startByte, responseRange.endByte,
 +                  responseRange.entityLength),
-+              error_code::CANNOT_RESUME);
++              error_code::HTTP_SERVICE_UNAVAILABLE);
 +      }
 +      throw DL_ABORT_EX2(
 +              fmt(EX_INVALID_RANGE_HEADER, reqStartByte,
@@ -152,7 +161,7 @@ index 6e2a01d..a7355a1 100644
 +      if (getOption()->getAsBool(PREF_RETRY_ON_UNKNOWN)
 +          && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +          throw DL_RETRY_EX2(fmt("Unexpected status %d", r),
-+                            error_code::HTTP_PROTOCOL_ERROR);
++                            error_code::HTTP_SERVICE_UNAVAILABLE);
 +      }
 +      throw DL_ABORT_EX2(fmt("Unexpected status %d", r),
 +                          error_code::HTTP_PROTOCOL_ERROR);
@@ -163,7 +172,7 @@ index 6e2a01d..a7355a1 100644
  
    const auto& httpHeader = httpResponse->getHttpHeader();
 diff --git a/src/HttpSkipResponseCommand.cc b/src/HttpSkipResponseCommand.cc
-index a722d77..8fc5fb2 100644
+index a722d77..f629465 100644
 --- a/src/HttpSkipResponseCommand.cc
 +++ b/src/HttpSkipResponseCommand.cc
 @@ -204,7 +204,7 @@ bool HttpSkipResponseCommand::processResponse()
@@ -175,7 +184,7 @@ index a722d77..8fc5fb2 100644
        if (getOption()->getAsBool(PREF_HTTP_AUTH_CHALLENGE) &&
            !httpResponse_->getHttpRequest()->authenticationUsed() &&
            getDownloadEngine()->getAuthConfigFactory()->activateBasicCred(
-@@ -213,15 +213,41 @@ bool HttpSkipResponseCommand::processResponse()
+@@ -213,16 +213,42 @@ bool HttpSkipResponseCommand::processResponse()
          return prepareForRetry(0);
        }
        throw DL_ABORT_EX2(EX_AUTH_FAILED, error_code::HTTP_AUTH_FAILED);
@@ -189,25 +198,26 @@ index a722d77..8fc5fb2 100644
                           error_code::RESOURCE_NOT_FOUND);
 -    case 502:
 -    case 503:
+-      // Only retry if pretry-wait > 0. Hammering 'busy' server is not
 +    case 400: // Bad Request
 +        if (getOption()->getAsBool(PREF_RETRY_ON_400)
 +            && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +            throw DL_RETRY_EX2(fmt(EX_BAD_STATUS, statusCode),
-+                               error_code::HTTP_PROTOCOL_ERROR);
++                               error_code::HTTP_SERVICE_UNAVAILABLE);
 +        }
 +        break;
 +    case 403: // Forbidden
 +        if (getOption()->getAsBool(PREF_RETRY_ON_403)
 +            && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +            throw DL_RETRY_EX2(fmt(EX_BAD_STATUS, statusCode),
-+                               error_code::HTTP_PROTOCOL_ERROR);
++                               error_code::HTTP_SERVICE_UNAVAILABLE);
 +        }
 +        break;
 +    case 406: // Not Acceptable
 +        if (getOption()->getAsBool(PREF_RETRY_ON_406)
 +            && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +            throw DL_RETRY_EX2(fmt(EX_BAD_STATUS, statusCode),
-+                               error_code::HTTP_PROTOCOL_ERROR);
++                               error_code::HTTP_SERVICE_UNAVAILABLE);
 +        }
 +        break;
 +    case 408: // Request Timeout
@@ -217,9 +227,10 @@ index a722d77..8fc5fb2 100644
 +    case 507: // Insufficient Storage
 +    case 520: // https://github.com/aria2/aria2/issues/1229
 +    case 521: // https://github.com/aria2/aria2/issues/1229
-       // Only retry if pretry-wait > 0. Hammering 'busy' server is not
++      // Only retry if retry-wait > 0. Hammering 'busy' server is not
        // a good idea.
        if (getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
+         throw DL_RETRY_EX2(fmt(EX_BAD_STATUS, statusCode),
 @@ -230,12 +256,16 @@ bool HttpSkipResponseCommand::processResponse()
        }
        throw DL_ABORT_EX2(fmt(EX_BAD_STATUS, statusCode),
@@ -234,13 +245,13 @@ index a722d77..8fc5fb2 100644
 +    if (getOption()->getAsBool(PREF_RETRY_ON_UNKNOWN)
 +        && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +        throw DL_RETRY_EX2(fmt(EX_BAD_STATUS, statusCode),
-+                error_code::HTTP_PROTOCOL_ERROR);
++                error_code::HTTP_SERVICE_UNAVAILABLE);
 +    }
      throw DL_ABORT_EX2(fmt(EX_BAD_STATUS, statusCode),
                         error_code::HTTP_PROTOCOL_ERROR);
    }
 diff --git a/src/OptionHandlerFactory.cc b/src/OptionHandlerFactory.cc
-index 6bff4ca..1cfe549 100644
+index 6bff4ca..bb3b0bf 100644
 --- a/src/OptionHandlerFactory.cc
 +++ b/src/OptionHandlerFactory.cc
 @@ -158,7 +158,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
@@ -308,10 +319,20 @@ index 6bff4ca..1cfe549 100644
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
      op->setInitialOption(true);
-@@ -934,6 +934,56 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
+@@ -934,6 +934,66 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
      op->setChangeOptionForReserved(true);
      handlers.push_back(op);
    }
++  {
++      OptionHandler* op(new BooleanOptionHandler(
++              PREF_RETRY_ON_LOWEST_SPEED, TEXT_RETRY_ON_LOWEST_SPEED, A2_V_FALSE, OptionHandler::OPT_ARG));
++      op->addTag(TAG_ADVANCED);
++      op->addTag(TAG_HTTP);
++      op->setInitialOption(true);
++      op->setChangeGlobalOption(true);
++      op->setChangeOptionForReserved(true);
++      handlers.push_back(op);
++  }
 +  {
 +      OptionHandler* op(new BooleanOptionHandler(
 +              PREF_RETRY_ON_NOT_SATISFIED_206, TEXT_RETRY_ON_NOT_SATISFIED_206, A2_V_FALSE, OptionHandler::OPT_ARG));
@@ -365,7 +386,7 @@ index 6bff4ca..1cfe549 100644
    {
      OptionHandler* op(new BooleanOptionHandler(
          PREF_REUSE_URI, TEXT_REUSE_URI, A2_V_TRUE, OptionHandler::OPT_ARG));
-@@ -971,7 +1021,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
+@@ -971,7 +1031,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(
@@ -374,7 +395,7 @@ index 6bff4ca..1cfe549 100644
      op->addTag(TAG_BASIC);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -1276,7 +1326,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
+@@ -1276,7 +1336,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new LocalFilePathOptionHandler(
@@ -466,13 +487,15 @@ index f9891fe..728ae07 100644
    if (op.getAsBool(PREF_DEFERRED_INPUT) && op.defined(PREF_SAVE_SESSION)) {
      A2_LOG_WARN("--deferred-input is disabled because of the presence of "
 diff --git a/src/prefs.cc b/src/prefs.cc
-index fe98268..12ad52f 100644
+index fe98268..3f5e01f 100644
 --- a/src/prefs.cc
 +++ b/src/prefs.cc
-@@ -326,6 +326,16 @@ PrefPtr PREF_ENABLE_ASYNC_DNS6 = makePref("enable-async-dns6");
+@@ -326,6 +326,18 @@ PrefPtr PREF_ENABLE_ASYNC_DNS6 = makePref("enable-async-dns6");
  PrefPtr PREF_MAX_DOWNLOAD_RESULT = makePref("max-download-result");
  // value: 1*digit
  PrefPtr PREF_RETRY_WAIT = makePref("retry-wait");
++// value: true | false
++PrefPtr PREF_RETRY_ON_LOWEST_SPEED = makePref("retry-on-lowest-speed");
 +// value: true | false
 +PrefPtr PREF_RETRY_ON_NOT_SATISFIED_206 = makePref("retry-on-not-satisfied-206");
 +// value: true | false
@@ -487,13 +510,15 @@ index fe98268..12ad52f 100644
  PrefPtr PREF_ASYNC_DNS_SERVER = makePref("async-dns-server");
  // value: true | false
 diff --git a/src/prefs.h b/src/prefs.h
-index 9719b3b..a88c14b 100644
+index 9719b3b..a235535 100644
 --- a/src/prefs.h
 +++ b/src/prefs.h
-@@ -279,6 +279,16 @@ extern PrefPtr PREF_ENABLE_ASYNC_DNS6;
+@@ -279,6 +279,18 @@ extern PrefPtr PREF_ENABLE_ASYNC_DNS6;
  extern PrefPtr PREF_MAX_DOWNLOAD_RESULT;
  // value: 1*digit
  extern PrefPtr PREF_RETRY_WAIT;
++// value: true | false
++extern PrefPtr PREF_RETRY_ON_LOWEST_SPEED;
 +// value: true | false
 +extern PrefPtr PREF_RETRY_ON_NOT_SATISFIED_206;
 +// value: true | false
@@ -508,13 +533,18 @@ index 9719b3b..a88c14b 100644
  extern PrefPtr PREF_ASYNC_DNS_SERVER;
  // value: true | false
 diff --git a/src/usage_text.h b/src/usage_text.h
-index ebf67e3..179a990 100644
+index ebf67e3..4b15df6 100644
 --- a/src/usage_text.h
 +++ b/src/usage_text.h
-@@ -64,6 +64,27 @@
+@@ -64,6 +64,32 @@
    _(" --retry-wait=SEC             Set the seconds to wait between retries. \n" \
      "                              With SEC > 0, aria2 will retry download when the\n" \
      "                              HTTP server returns 503 response.")
++#define TEXT_RETRY_ON_LOWEST_SPEED                                                 \
++  _(" --retry-on-lowest-speed[=true|false]  Configure whether retry or not when\n" \
++    "                              download speed is lower than or equal to lowest.\n" \
++    "                              speed limit. See also the --lowest-speed-limit option.\n" \
++    "                              Only effective if lowest-speed-limit > 0.")
 +#define TEXT_RETRY_ON_NOT_SATISFIED_206                                     \
 +  _(" --retry-on-not-satisfied-206[=true|false]  Configure whether retry or not when\n" \
 +    "                              HTTP server returns unsatisfied 206 partial content or\n" \
@@ -539,6 +569,16 @@ index ebf67e3..179a990 100644
  #define TEXT_TIMEOUT                                            \
    _(" -t, --timeout=SEC            Set timeout in seconds.")
  #define TEXT_MAX_TRIES                                                  \
+@@ -114,7 +140,8 @@
+     "                              the active mode will be used.")
+ #define TEXT_LOWEST_SPEED_LIMIT                                         \
+   _(" --lowest-speed-limit=SPEED   Close connection if download speed is lower than\n" \
+-    "                              or equal to this value(bytes per sec).\n" \
++    "                              or equal to this value(bytes per sec), except that.\n" \
++    "                              --retry-on-lowest-speed is set to true.\n" \
+     "                              0 means aria2 does not have a lowest speed limit.\n" \
+     "                              You can append K or M(1K = 1024, 1M = 1024K).\n" \
+     "                              This option does not affect BitTorrent downloads.")
 diff --git a/src/util.cc b/src/util.cc
 index 07502c0..e6da18f 100644
 --- a/src/util.cc
