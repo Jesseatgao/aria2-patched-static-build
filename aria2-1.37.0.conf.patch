@@ -251,7 +251,7 @@ index a722d77..f629465 100644
                         error_code::HTTP_PROTOCOL_ERROR);
    }
 diff --git a/src/OptionHandlerFactory.cc b/src/OptionHandlerFactory.cc
-index 6bff4ca..bb3b0bf 100644
+index 2cd2c43..d7bc2dc 100644
 --- a/src/OptionHandlerFactory.cc
 +++ b/src/OptionHandlerFactory.cc
 @@ -158,7 +158,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
@@ -395,7 +395,7 @@ index 6bff4ca..bb3b0bf 100644
      op->addTag(TAG_BASIC);
      op->addTag(TAG_FTP);
      op->addTag(TAG_HTTP);
-@@ -1276,7 +1336,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
+@@ -1286,7 +1346,7 @@ std::vector<OptionHandler*> OptionHandlerFactory::createOptionHandlers()
    }
    {
      OptionHandler* op(new LocalFilePathOptionHandler(
@@ -439,10 +439,10 @@ index 62862ff..eed3c33 100644
      // A2_LOG_NOTICE(fmt("num=%zu, amount=%d, bufq.size()=%zu, SEND=%d",
      //                   num, amount, bufq_.size(), slen));
 diff --git a/src/SocketCore.cc b/src/SocketCore.cc
-index e235f51..ab42ba7 100644
+index 4e7421b..9f24da8 100644
 --- a/src/SocketCore.cc
 +++ b/src/SocketCore.cc
-@@ -1015,7 +1015,7 @@ bool SocketCore::tlsHandshake(TLSContext* tlsctx, const std::string& hostname)
+@@ -1016,7 +1016,7 @@ bool SocketCore::tlsHandshake(TLSContext* tlsctx, const std::string& hostname)
  
      if (rv == TLS_ERR_ERROR) {
        // Damn those error.
@@ -452,7 +452,7 @@ index e235f51..ab42ba7 100644
                                  ? tlsSession_->getLastErrorString().c_str()
                                  : handshakeError.c_str()));
 diff --git a/src/option_processing.cc b/src/option_processing.cc
-index f9891fe..728ae07 100644
+index a671b23..ba95443 100644
 --- a/src/option_processing.cc
 +++ b/src/option_processing.cc
 @@ -319,6 +319,22 @@ error_code::Value option_processing(Option& op, bool standalone,
@@ -487,7 +487,7 @@ index f9891fe..728ae07 100644
    if (op.getAsBool(PREF_DEFERRED_INPUT) && op.defined(PREF_SAVE_SESSION)) {
      A2_LOG_WARN("--deferred-input is disabled because of the presence of "
 diff --git a/src/prefs.cc b/src/prefs.cc
-index fe98268..3f5e01f 100644
+index 2591b9f..cdeb20d 100644
 --- a/src/prefs.cc
 +++ b/src/prefs.cc
 @@ -326,6 +326,18 @@ PrefPtr PREF_ENABLE_ASYNC_DNS6 = makePref("enable-async-dns6");
@@ -510,7 +510,7 @@ index fe98268..3f5e01f 100644
  PrefPtr PREF_ASYNC_DNS_SERVER = makePref("async-dns-server");
  // value: true | false
 diff --git a/src/prefs.h b/src/prefs.h
-index 9719b3b..a235535 100644
+index 338fd6e..861b010 100644
 --- a/src/prefs.h
 +++ b/src/prefs.h
 @@ -279,6 +279,18 @@ extern PrefPtr PREF_ENABLE_ASYNC_DNS6;
@@ -533,7 +533,7 @@ index 9719b3b..a235535 100644
  extern PrefPtr PREF_ASYNC_DNS_SERVER;
  // value: true | false
 diff --git a/src/usage_text.h b/src/usage_text.h
-index ebf67e3..4b15df6 100644
+index 4868456..6b28b2d 100644
 --- a/src/usage_text.h
 +++ b/src/usage_text.h
 @@ -64,6 +64,32 @@

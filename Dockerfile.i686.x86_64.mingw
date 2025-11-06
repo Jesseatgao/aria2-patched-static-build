@@ -1,7 +1,7 @@
 # `aria2c`, `aria2c.exe` for Linux and Windows respectively
 ARG ARIA2_BIN=aria2c.exe
 
-ARG MINGW_W64_IMG=cgdoc/mingw-w64-multilib:win32-v1.5
+ARG MINGW_W64_IMG=cgdoc/mingw-w64-multilib:win32-v1.7
 
 ###################Stage 0: ######################
 FROM $MINGW_W64_IMG AS builder
@@ -30,11 +30,11 @@ ENV C_ARES_VER=1.15.0
 ENV OPENSSL_VER=1.1.1b
 ENV SQLITE_VER=3310100
 ENV LIBSSH2_VER=1.10.0
-ENV ARIA2_VER=1.35.0
+ENV ARIA2_VER=1.37.0
 
 
 # implicitly created $SRC
-ADD aria2-1.35.0.conf.patch $SRC
+ADD aria2-$ARIA2_VER.conf.patch $SRC
 
 RUN cd $SRC \
     && curl -L -O https://mirrors.aliyun.com/macports/distfiles/zlib/zlib-$ZLIB_VER.tar.xz \
