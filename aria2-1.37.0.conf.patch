@@ -1,3 +1,16 @@
+diff --git a/src/BufferedFile.cc b/src/BufferedFile.cc
+index fe1b977..60994d4 100644
+--- a/src/BufferedFile.cc
++++ b/src/BufferedFile.cc
+@@ -86,7 +86,7 @@ int BufferedFile::onClose()
+ #else  // __MINGW32__
+     _commit(fileno(fp_));
+ #endif // __MINGW32__
+-    if (fp_ != stdin && fp_ != stderr) {
++    if (fp_ != stdout && fp_ != stderr) {
+       rv = fclose(fp_);
+     }
+     fp_ = nullptr;
 diff --git a/src/DownloadCommand.cc b/src/DownloadCommand.cc
 index 2db41e4..129005a 100644
 --- a/src/DownloadCommand.cc
@@ -533,7 +546,7 @@ index 338fd6e..861b010 100644
  extern PrefPtr PREF_ASYNC_DNS_SERVER;
  // value: true | false
 diff --git a/src/usage_text.h b/src/usage_text.h
-index 4868456..6b28b2d 100644
+index 4868456..e032f99 100644
 --- a/src/usage_text.h
 +++ b/src/usage_text.h
 @@ -64,6 +64,32 @@
@@ -542,7 +555,7 @@ index 4868456..6b28b2d 100644
      "                              HTTP server returns 503 response.")
 +#define TEXT_RETRY_ON_LOWEST_SPEED                                                 \
 +  _(" --retry-on-lowest-speed[=true|false]  Configure whether retry or not when\n" \
-+    "                              download speed is lower than or equal to lowest.\n" \
++    "                              download speed is lower than or equal to lowest\n" \
 +    "                              speed limit. See also the --lowest-speed-limit option.\n" \
 +    "                              Only effective if lowest-speed-limit > 0.")
 +#define TEXT_RETRY_ON_NOT_SATISFIED_206                                     \
