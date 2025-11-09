@@ -113,7 +113,7 @@ index 2caffaf..6480ca4 100644
    /**
     * Returns filename.
 diff --git a/src/HttpResponseCommand.cc b/src/HttpResponseCommand.cc
-index 6e2a01d..3dd5986 100644
+index 6e2a01d..c9e26e4 100644
 --- a/src/HttpResponseCommand.cc
 +++ b/src/HttpResponseCommand.cc
 @@ -51,16 +51,19 @@
@@ -136,7 +136,7 @@ index 6e2a01d..3dd5986 100644
  #include "LogFactory.h"
  #include "CookieStorage.h"
  #include "AuthConfigFactory.h"
-@@ -154,7 +157,44 @@ bool HttpResponseCommand::executeInternal()
+@@ -154,7 +157,47 @@ bool HttpResponseCommand::executeInternal()
    }
  
    // check HTTP status code
@@ -148,13 +148,16 @@ index 6e2a01d..3dd5986 100644
 +    case -1: {
 +      // 200 OK or 206 Partial Content: range not satisified
 +      auto& httpRequest = httpResponse->getHttpRequest();
++      auto reqStartByte = httpRequest->getStartByte();
++      auto reqEndByte = httpRequest->getEndByte();
++      auto reqEntityLength = httpRequest->getEntityLength();      
 +      auto responseRange = httpResponse->getHttpHeader()->getRange();
 +
 +      if (getOption()->getAsBool(PREF_RETRY_ON_NOT_SATISFIED_206)
 +          && getOption()->getAsInt(PREF_RETRY_WAIT) > 0) {
 +          throw DL_RETRY_EX2(
-+              fmt(EX_INVALID_RANGE_HEADER, httpRequest->getStartByte(),
-+                  httpRequest->getEndByte(), httpRequest->getEntityLength(),
++              fmt(EX_INVALID_RANGE_HEADER, reqStartByte,
++                  reqEndByte, reqEntityLength,
 +                  responseRange.startByte, responseRange.endByte,
 +                  responseRange.entityLength),
 +              error_code::HTTP_SERVICE_UNAVAILABLE);
